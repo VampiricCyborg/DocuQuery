@@ -123,6 +123,16 @@
     --color-scrim: #000000a6;
     --shadow-color: rgb(0 0 0 / 0.5);
   }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-fg);
+  }
+
+  /* One stroke weight for every Lucide icon */
+  svg.lucide {
+    stroke-width: var(--icon-stroke-width);
+  }
 }
 
 /* Shared keyboard focus treatment for every interactive element */
@@ -141,16 +151,27 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
-  background: #0a0a0a;
-  color: #f5f5f5;
-}
-
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #444; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-line-strong); }
+
+/* Honor the OS reduced-motion setting for CSS transitions and animations
+   (framer-motion is covered by MotionConfig in Providers). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* Markdown prose */
 .prose { color: inherit; max-width: none; }

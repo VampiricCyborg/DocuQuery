@@ -5,20 +5,20 @@ import { Slot } from "@radix-ui/react-slot"
 import { forwardRef } from "react"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-control font-medium transition-colors focus-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-500 active:bg-blue-700",
-        ghost: "text-neutral-400 hover:text-white hover:bg-white/5",
-        outline: "border border-neutral-700 text-neutral-300 hover:bg-white/5 hover:text-white",
-        destructive: "bg-red-600/20 text-red-400 hover:bg-red-600/30",
-        secondary: "bg-neutral-800 text-neutral-200 hover:bg-neutral-700",
+        default: "bg-accent text-on-accent hover:bg-accent-hover",
+        ghost: "text-fg-muted hover:bg-surface-muted hover:text-fg",
+        outline: "border border-line text-fg hover:bg-surface-muted",
+        destructive: "border border-transparent bg-danger-subtle text-danger hover:border-danger",
+        secondary: "border border-line bg-surface text-fg hover:bg-surface-muted",
       },
       size: {
-        sm: "h-7 px-3 text-xs",
-        md: "h-9 px-4",
-        lg: "h-11 px-6 text-base",
+        sm: "h-7 px-2.5 text-caption",
+        md: "h-9 px-3.5 text-body",
+        lg: "h-10 px-4 text-body-lg",
         icon: "h-8 w-8",
       },
     },

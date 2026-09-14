@@ -1,12 +1,13 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { useAuthStore } from "@/stores/auth.store"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { AuthField, AuthHeading, AuthLink } from "@/components/auth/AuthForm"
+import { transition } from "@/lib/motion"
 import toast from "react-hot-toast"
 
 export default function SignupPage() {
@@ -32,25 +33,28 @@ export default function SignupPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={transition.slow}>
+      <AuthHeading title="Create your account" description="Upload documents and get answers with citations." />
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         {[
-          { label: "Name", value: name, set: setName, type: "text", placeholder: "Your name" },
-          { label: "Email", value: email, set: setEmail, type: "email", placeholder: "you@example.com" },
-          { label: "Password", value: password, set: setPassword, type: "password", placeholder: "Min 8 characters" },
-        ].map(({ label, value, set, type, placeholder }) => (
-          <div key={label} className="space-y-1.5">
-            <label htmlFor={`signup-${label.toLowerCase()}`} className="text-xs font-medium text-neutral-400">{label}</label>
-            <Input id={`signup-${label.toLowerCase()}`} type={type} value={value} onChange={e => set(e.target.value)} placeholder={placeholder} required />
-          </div>
-        ))}
+          { label: "Name", value: name, set: setName, type: "text", placeholder: "Your name", autoComplete: "name" },
+          { label: "Email", value: email, set: setEmail, type: "email", placeholder: "you@example.com", autoComplete: "email" },
+          { label: "Password", value: password, set: setPassword, type: "password", placeholder: "Min 8 characters", autoComplete: "new-password" },
+        ].map(({ label, value, set, type, placeholder, autoComplete }) => {
+          const id = `signup-${label.toLowerCase()}`
+          return (
+            <AuthField key={label} id={id} label={label}>
+              <Input id={id} type={type} autoComplete={autoComplete} value={value} onChange={e => set(e.target.value)} placeholder={placeholder} required />
+            </AuthField>
+          )
+        })}
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create account"}
+          {loading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+          {loading ? "Creating account…" : "Create account"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-xs text-neutral-500">
-        Already have an account?{" "}
-        <Link href="/login" className="text-blue-400 hover:text-blue-300 transition-colors">Sign in</Link>
+      <p className="mt-6 text-center text-fg-muted">
+        Already have an account? <AuthLink href="/login">Sign in</AuthLink>
       </p>
     </motion.div>
   )
