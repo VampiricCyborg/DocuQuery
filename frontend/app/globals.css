@@ -27,13 +27,13 @@
   --color-fg-muted: #57544e;        /* secondary text */
   --color-fg-subtle: #6e6b64;       /* tertiary text, placeholders, timestamps */
 
-  /* Accent — primary actions and active states only */
-  --color-accent: #2563eb;
-  --color-accent-hover: #1d4ed8;
+  /* Accent ("ink indigo") — primary actions and active states only */
+  --color-accent: #3d4fd6;
+  --color-accent-hover: #3040bd;
   --color-on-accent: #ffffff;       /* text and icons on accent fills */
-  --color-accent-strong: #1d4ed8;   /* accent-colored text and icons */
-  --color-accent-subtle: #edf1fd;   /* selected and highlighted backgrounds */
-  --color-ring: #2563eb;            /* focus-visible outline */
+  --color-accent-strong: #3040bd;   /* accent-colored text and icons */
+  --color-accent-subtle: #eef0fc;   /* selected and highlighted backgrounds */
+  --color-ring: #3d4fd6;            /* focus-visible outline */
 
   /* Status */
   --color-danger: #c4281c;
@@ -108,12 +108,12 @@
     --color-fg: #edece8;
     --color-fg-muted: #b0aea7;
     --color-fg-subtle: #96948d;
-    --color-accent: #2e6bf0;
-    --color-accent-hover: #2563eb;
+    --color-accent: #5566eb;
+    --color-accent-hover: #4a5bdf;
     --color-on-accent: #ffffff;
-    --color-accent-strong: #8db0ff;
-    --color-accent-subtle: #1b2542;
-    --color-ring: #6b96ff;
+    --color-accent-strong: #a9b4ff;
+    --color-accent-subtle: #20254a;
+    --color-ring: #8391ff;
     --color-danger: #f28b80;
     --color-danger-subtle: #3b1f1c;
     --color-success: #6acf93;
