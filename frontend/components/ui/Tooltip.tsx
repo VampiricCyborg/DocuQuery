@@ -1,6 +1,5 @@
 "use client"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-import { cn } from "@/lib/utils"
 
 export function Tooltip({ children, content, side = "top" }: {
   children: React.ReactNode
@@ -14,13 +13,10 @@ export function Tooltip({ children, content, side = "top" }: {
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             side={side}
-            className={cn(
-              "z-50 rounded-md bg-neutral-800 border border-neutral-700 px-2.5 py-1.5 text-xs text-neutral-200 shadow-lg",
-              "animate-in fade-in-0 zoom-in-95"
-            )}
+            sideOffset={6}
+            className="z-50 rounded-control bg-fg px-2 py-1 text-caption text-canvas data-[state=delayed-open]:animate-fade-in data-[state=instant-open]:animate-fade-in"
           >
             {content}
-            <TooltipPrimitive.Arrow className="fill-neutral-800" />
           </TooltipPrimitive.Content>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>

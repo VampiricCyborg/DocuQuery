@@ -143,6 +143,40 @@
   }
 }
 
+/* Same ring drawn inside the element, for rows in scroll containers that would clip an outer ring */
+@utility focus-ring-inset {
+  &:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: -2px;
+  }
+}
+
+/* Entrance animations for overlays (tooltips, menus, the mobile navigation drawer) */
+@theme {
+  --animate-fade-in: fade-in var(--duration-fast) var(--ease-standard);
+  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-standard);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+/* Transitional: app pages that are not yet on tokens (Phases 5–9) still expect the
+   original dark ground. Applied to the app shell's content area only; delete this
+   class and its usage once every dashboard page has been migrated. */
+@layer components {
+  .legacy-page {
+    background-color: #0a0a0a;
+    color: #ffffff;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

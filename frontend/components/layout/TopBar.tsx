@@ -1,36 +1,42 @@
 "use client"
-import { PanelLeft, Bell } from "lucide-react"
+import { Menu, PanelLeft } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { UserMenu } from "@/components/sidebar/UserMenu"
 
-export function TopBar() {
+export function TopBar({ onOpenMobileNav, mobileNavTriggerRef }: {
+  onOpenMobileNav: () => void
+  mobileNavTriggerRef: React.Ref<HTMLButtonElement>
+}) {
   const { toggleSidebar, sidebarOpen, activeConversation } = useChatStore()
   const active = activeConversation()
 
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4">
-      <div className="flex items-center gap-3">
+    <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-canvas px-3 text-body text-fg">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Button
+          ref={mobileNavTriggerRef}
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          aria-label="Open navigation"
+          onClick={onOpenMobileNav}
+        >
+          <Menu className="size-4" aria-hidden="true" />
+        </Button>
         {!sidebarOpen && (
           <Tooltip content="Open sidebar">
-            <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-              <PanelLeft className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="hidden md:inline-flex" aria-label="Open sidebar" onClick={toggleSidebar}>
+              <PanelLeft className="size-4" aria-hidden="true" />
             </Button>
           </Tooltip>
         )}
         {active && (
-          <h1 className="text-sm font-medium text-neutral-300 truncate max-w-xs">{active.title}</h1>
+          <p className="max-w-xs truncate font-medium">{active.title}</p>
         )}
       </div>
-      <div className="flex items-center gap-2">
-        <Tooltip content="Notifications">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-4 w-4" />
-          </Button>
-        </Tooltip>
-        <UserMenu compact />
-      </div>
+      <UserMenu compact />
     </header>
   )
 }
