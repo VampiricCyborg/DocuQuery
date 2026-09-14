@@ -4,42 +4,35 @@ import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/stores/auth.store"
 import { Sidebar } from "@/components/sidebar/Sidebar"
 import { TopBar } from "@/components/layout/TopBar"
-import { useChatStore } from "@/stores/chat.store"
+import { CommandPalette } from "@/components/command/CommandPalette"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
-import { generateId } from "@/lib/utils"
-import type { Conversation } from "@/types"
-import { getDefaultChatMode } from "@/stores/settings.store"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isHydrated } = useAuthStore()
   const router = useRouter()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   // The drawer returns focus here when it closes (browsers don't reliably focus a clicked button).
   const mobileNavTriggerRef = useRef<HTMLButtonElement>(null)
+  // Where focus goes when the palette closes: the button that opened it, or whatever had focus for Ctrl+K.
+  const paletteReturnFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) router.replace("/login")
   }, [isAuthenticated, isHydrated, router])
 
-  const { addConversation } = useChatStore()
+  const openPalette = (returnFocusTo?: HTMLElement | null) => {
+    paletteReturnFocusRef.current = returnFocusTo ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
+    setPaletteOpen(true)
+  }
 
+  // Ctrl+K toggles the quick-actions palette. Its first result is "New chat", so Ctrl+K then
+  // Enter reproduces the previous shortcut (create a conversation and open /chat).
   useKeyboardShortcuts([
     {
       key: "k",
       ctrl: true,
-      action: () => {
-        const conv: Conversation = {
-          id: generateId(),
-          title: "New Chat",
-          messages: [],
-          mode: getDefaultChatMode(),
-          pinned: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        addConversation(conv)
-        router.push("/chat")
-      },
+      action: () => (paletteOpen ? setPaletteOpen(false) : openPalette()),
     },
   ])
 
@@ -47,12 +40,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas">
-      <Sidebar mobileOpen={mobileNavOpen} onMobileOpenChange={setMobileNavOpen} returnFocusRef={mobileNavTriggerRef} />
+      <Sidebar
+        mobileOpen={mobileNavOpen}
+        onMobileOpenChange={setMobileNavOpen}
+        returnFocusRef={mobileNavTriggerRef}
+        onOpenCommandPalette={openPalette}
+      />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar mobileNavTriggerRef={mobileNavTriggerRef} onOpenMobileNav={() => setMobileNavOpen(true)} />
         {/* legacy-page: temporary dark ground until the pages themselves move to tokens (Phases 5–9) */}
         <main className="legacy-page flex flex-1 overflow-hidden">{children}</main>
       </div>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} returnFocusRef={paletteReturnFocusRef} />
     </div>
   )
 }

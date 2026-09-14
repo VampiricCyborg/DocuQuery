@@ -2,7 +2,7 @@
 import { useState, useMemo, useRef, useEffect, useId } from "react"
 import * as Dialog from "@radix-ui/react-dialog"
 import { motion } from "framer-motion"
-import { Plus, Search, Pin, Trash2, MessageSquare, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react"
+import { Plus, Search, Pin, Trash2, MessageSquare, ChevronLeft, ChevronRight, Pencil, Check, X, Zap } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
@@ -40,6 +40,9 @@ const GROUP_LABELS: Record<Group, string> = {
 
 const GROUP_ORDER: Group[] = ["pinned", "today", "yesterday", "week", "older"]
 
+/** Opens the command palette; `returnFocusTo` is refocused when the palette closes. */
+type OpenCommandPalette = (returnFocusTo?: HTMLElement | null) => void
+
 function useNewConversation() {
   const addConversation = useChatStore(s => s.addConversation)
   return () => {
@@ -62,11 +65,12 @@ function useNewConversation() {
  * Desktop (md and up): collapsible sidebar driven by the persisted `sidebarOpen` store flag.
  * Mobile: the same panel inside a modal drawer controlled by the layout.
  */
-export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef }: {
+export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef, onOpenCommandPalette }: {
   mobileOpen: boolean
   onMobileOpenChange: (open: boolean) => void
   /** Element that regains focus when the mobile drawer closes (the top bar's menu button). */
   returnFocusRef: React.RefObject<HTMLButtonElement | null>
+  onOpenCommandPalette: OpenCommandPalette
 }) {
   const { sidebarOpen, toggleSidebar } = useChatStore()
   const handleNew = useNewConversation()
@@ -91,6 +95,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef }: {
           className="hidden h-full w-64 shrink-0 flex-col overflow-hidden border-r border-line bg-canvas text-body text-fg md:flex"
         >
           <SidebarPanel
+            onOpenCommandPalette={onOpenCommandPalette}
             headerAction={
               <Tooltip content="Collapse sidebar">
                 <Button variant="ghost" size="icon" aria-label="Collapse sidebar" onClick={toggleSidebar}>
@@ -105,6 +110,17 @@ export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef }: {
           <Tooltip content="Expand sidebar" side="right">
             <Button variant="ghost" size="icon" aria-label="Expand sidebar" onClick={toggleSidebar}>
               <ChevronRight className="size-4" aria-hidden="true" />
+            </Button>
+          </Tooltip>
+          <Tooltip content="Quick actions (Ctrl+K)" side="right">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Quick actions"
+              aria-keyshortcuts="Control+K"
+              onClick={event => onOpenCommandPalette(event.currentTarget)}
+            >
+              <Zap className="size-4" aria-hidden="true" />
             </Button>
           </Tooltip>
           <Tooltip content="New chat" side="right">
@@ -131,6 +147,9 @@ export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef }: {
             <Dialog.Title className="sr-only">Navigation</Dialog.Title>
             <SidebarPanel
               onNavigate={() => onMobileOpenChange(false)}
+              // The drawer (and its Quick actions button) unmounts when it closes, so the palette
+              // hands focus back to the top bar's menu button instead.
+              onOpenCommandPalette={() => onOpenCommandPalette(returnFocusRef.current)}
               headerAction={
                 <Dialog.Close asChild>
                   <Button ref={closeNavRef} variant="ghost" size="icon" aria-label="Close navigation">
@@ -148,7 +167,11 @@ export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef }: {
 
 // ─── SidebarPanel ─────────────────────────────────────────────────────────────
 
-function SidebarPanel({ headerAction, onNavigate }: { headerAction: React.ReactNode; onNavigate?: () => void }) {
+function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
+  headerAction: React.ReactNode
+  onNavigate?: () => void
+  onOpenCommandPalette: OpenCommandPalette
+}) {
   const { conversations, activeId, setActiveId, deleteConversation, togglePin } = useChatStore()
   const handleNew = useNewConversation()
   const [search, setSearch] = useState("")
@@ -187,6 +210,12 @@ function SidebarPanel({ headerAction, onNavigate }: { headerAction: React.ReactN
     toast.success("Chat deleted")
   }
 
+  const openQuickActions = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const opener = event.currentTarget
+    onNavigate?.()
+    onOpenCommandPalette(opener)
+  }
+
   return (
     <>
       {/* Header */}
@@ -195,13 +224,27 @@ function SidebarPanel({ headerAction, onNavigate }: { headerAction: React.ReactN
           <Logo />
         </Link>
         <div className="flex items-center gap-0.5">
-          <Tooltip content="New chat (Ctrl+K)">
+          <Tooltip content="New chat">
             <Button variant="ghost" size="icon" aria-label="New chat" onClick={startNew}>
               <Plus className="size-4" aria-hidden="true" />
             </Button>
           </Tooltip>
           {headerAction}
         </div>
+      </div>
+
+      {/* Quick actions (command palette) */}
+      <div className="px-2 pt-2">
+        <button
+          type="button"
+          onClick={openQuickActions}
+          aria-keyshortcuts="Control+K"
+          className="flex w-full items-center gap-2 rounded-control border border-line bg-surface px-2 py-1.5 text-left text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg focus-ring"
+        >
+          <Zap className="size-4 shrink-0 text-fg-subtle" aria-hidden="true" />
+          <span className="flex-1">Quick actions</span>
+          <kbd className="rounded-control border border-line bg-surface-muted px-1.5 font-mono text-micro text-fg-subtle">Ctrl K</kbd>
+        </button>
       </div>
 
       <NavLinks onNavigate={onNavigate} />
