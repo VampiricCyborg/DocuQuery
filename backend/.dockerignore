@@ -1,0 +1,17 @@
+# Downloaded at build time by scripts/download_embedding_model.py --
+# never copy a host-local copy over the pinned in-image download.
+models/
+
+.testvenv/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+.git/
+.env
+uploads/*
+!uploads/.gitkeep

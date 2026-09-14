@@ -2,12 +2,10 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.core.middleware import SecurityHeadersMiddleware, configure_rate_limiter
-from app.database.base import engine, Base
 from app.api import (
     health_router,
     upload_router,
@@ -23,18 +21,17 @@ configure_logging(debug=settings.debug)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        await conn.run_sync(Base.metadata.create_all)
-    
+    # Startup — schema is managed exclusively by Alembic. `alembic upgrade head`
+    # runs before this process starts (see railway.json's startCommand and the
+    # Dockerfile's CMD) so no schema setup happens here.
+
     # Eager-load the embedding model to avoid cold-load OOM on first /chat request
     import logging
     from app.ingestion.embeddings import get_embedding_service
     logger = logging.getLogger(__name__)
-    logger.info("[startup] Eager-loading embedding model to avoid OOM on first request...")
+    logger.info("[startup] Eager-loading ONNX embedding model to avoid cold-load latency on first request...")
     service = get_embedding_service()
-    service._load_model()  # Load BAAI/bge-small-en-v1.5 (~130MB) now, not on first /chat
+    service.warm_up()  # Load BAAI/bge-small-en-v1.5 ONNX INT8 (~35MB) now, not on first /chat
     logger.info("[startup] Embedding model loaded. Application ready.")
     
     yield

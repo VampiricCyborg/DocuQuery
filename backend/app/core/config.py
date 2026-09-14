@@ -33,7 +33,8 @@ class Settings(BaseSettings):
     # Ingestion
     chunk_size: int = 800
     chunk_overlap: int = 120
-    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"  # descriptive label only, used in logs
+    embedding_model_dir: str = "models/bge-small-en-v1.5-onnx-int8"
     embedding_batch_size: int = 32
 
     # Retrieval

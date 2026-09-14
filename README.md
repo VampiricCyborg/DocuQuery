@@ -130,7 +130,7 @@ The backend supports three mode-aware chat paths. Hybrid mode optionally calls T
 | **PDF Parsing** | [PyMuPDF](https://pymupdf.readthedocs.io/) |
 | **DOCX Parsing** | [python-docx](https://python-docx.readthedocs.io/) |
 | **Chunking** | [LangChain Text Splitters](https://python.langchain.com/) |
-| **Embeddings** | [SentenceTransformers](https://sbert.net/) — `BAAI/bge-small-en-v1.5` |
+| **Embeddings** | [ONNX Runtime](https://onnxruntime.ai/) — `BAAI/bge-small-en-v1.5` (INT8, CLS-pooled) |
 | **LLM Providers** | [Groq](https://groq.com/) · [OpenAI](https://openai.com/) · [Anthropic](https://anthropic.com/) · [Gemini](https://deepmind.google/technologies/gemini/) · [Ollama](https://ollama.com/) |
 | **Rate Limiting** | [slowapi](https://github.com/laurentS/slowapi) |
 | **Containerization** | [Docker](https://docker.com/) + [Docker Compose](https://docs.docker.com/compose/) |
@@ -395,7 +395,7 @@ Chunk text
      │
      ▼
 Generate embeddings
-  (BAAI/bge-small-en-v1.5, 384 dims, batched, singleton)
+  (BAAI/bge-small-en-v1.5 ONNX INT8, 384 dims, CLS-pooled, batched, singleton)
      │
      ▼
 Store vectors

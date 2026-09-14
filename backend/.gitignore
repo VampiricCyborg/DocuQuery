@@ -22,9 +22,9 @@ uploads/*
 .coverage
 htmlcov/
 
-# HuggingFace / SentenceTransformers model cache
-.cache/
-~/.cache/huggingface/
+# Downloaded ONNX embedding model + tokenizer assets (fetched by
+# scripts/download_embedding_model.py; not committed, ~35MB binary)
+models/
 
 # Alembic
 # (versions/ IS committed — migrations are source-controlled)
