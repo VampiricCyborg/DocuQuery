@@ -184,12 +184,12 @@ class TestFilters:
 @pytest.mark.asyncio
 async def test_embed_query_returns_vector():
     mock_service = MagicMock()
-    mock_service.embed.return_value = [[0.1] * 768]
+    mock_service.embed.return_value = [[0.1] * 384]
 
     with patch("app.retrieval.embedding_query.get_embedding_service", return_value=mock_service):
         from app.retrieval.embedding_query import embed_query
         vector = await embed_query("What is the leave policy?")
-        assert len(vector) == 768
+        assert len(vector) == 384
         mock_service.embed.assert_called_once()
 
 
@@ -213,7 +213,7 @@ async def test_pipeline_returns_result():
          patch("app.retrieval.retrieval_pipeline.similarity_search", new_callable=AsyncMock) as mock_search, \
          patch("app.retrieval.retrieval_pipeline.get_settings") as mock_settings:
 
-        mock_embed.return_value = [0.1] * 768
+        mock_embed.return_value = [0.1] * 384
         mock_search.return_value = [(chunk, 0.15)]  # distance 0.15 → similarity 0.925
 
         settings = MagicMock()
@@ -240,7 +240,7 @@ async def test_pipeline_raises_no_results_when_all_below_threshold():
          patch("app.retrieval.retrieval_pipeline.similarity_search", new_callable=AsyncMock) as mock_search, \
          patch("app.retrieval.retrieval_pipeline.get_settings") as mock_settings:
 
-        mock_embed.return_value = [0.1] * 768
+        mock_embed.return_value = [0.1] * 384
         mock_search.return_value = [(chunk, 1.8)]  # distance 1.8 → similarity 0.1 (below 0.3)
 
         settings = MagicMock()
@@ -262,7 +262,7 @@ async def test_pipeline_no_results_when_search_empty():
          patch("app.retrieval.retrieval_pipeline.similarity_search", new_callable=AsyncMock) as mock_search, \
          patch("app.retrieval.retrieval_pipeline.get_settings") as mock_settings:
 
-        mock_embed.return_value = [0.1] * 768
+        mock_embed.return_value = [0.1] * 384
         mock_search.return_value = []
 
         settings = MagicMock()

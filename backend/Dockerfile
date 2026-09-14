@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the embedding model into the image cache
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-base-en-v1.5')"
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
 
 COPY . .
 
@@ -31,5 +31,5 @@ USER appuser
 
 EXPOSE 8000
 
-# Single worker to avoid duplicating 438MB embedding model in RAM
+# Single worker to avoid duplicating the embedding model in RAM
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--timeout-keep-alive", "30"]

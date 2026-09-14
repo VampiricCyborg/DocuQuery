@@ -9,7 +9,7 @@ from pgvector.sqlalchemy import Vector
 
 from app.database.base import Base
 
-EMBEDDING_DIM = 768  # BAAI/bge-base-en-v1.5
+EMBEDDING_DIM = 384  # BAAI/bge-small-en-v1.5
 
 
 class User(Base):

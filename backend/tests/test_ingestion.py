@@ -147,7 +147,7 @@ async def test_pipeline_success():
         mock_chunk.return_value = fake_chunks
 
         mock_emb = MagicMock()
-        mock_emb.embed.return_value = [[0.1] * 768]
+        mock_emb.embed.return_value = [[0.1] * 384]
         mock_emb_svc.return_value = mock_emb
 
         from app.ingestion.pipeline import run_ingestion_pipeline

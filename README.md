@@ -75,7 +75,7 @@ Unlike generic chatbots, DocuQuery is purpose-built for document intelligence. I
 |---|---|---|
 | 📂 **File Upload** | Drag-and-drop PDF/DOCX/TXT/MD ingestion | ✅ |
 | 🔍 **Auto-Indexing** | Parse → clean → chunk → embed → store on upload | ✅ |
-| 🧮 **Vector Store** | pgvector HNSW index, 768-dim embeddings | ✅ |
+| 🧮 **Vector Store** | pgvector HNSW index, 384-dim embeddings | ✅ |
 | 📊 **Processing Status** | `uploaded → processing → indexed → failed` lifecycle | ✅ |
 | 🤖 **RAG Chat** | Grounded answers from your documents, never hallucinated | ✅ |
 | 🔴 **Streaming Responses** | Token-by-token SSE streaming with citations | ✅ |
@@ -130,7 +130,7 @@ The backend supports three mode-aware chat paths. Hybrid mode optionally calls T
 | **PDF Parsing** | [PyMuPDF](https://pymupdf.readthedocs.io/) |
 | **DOCX Parsing** | [python-docx](https://python-docx.readthedocs.io/) |
 | **Chunking** | [LangChain Text Splitters](https://python.langchain.com/) |
-| **Embeddings** | [SentenceTransformers](https://sbert.net/) — `BAAI/bge-base-en-v1.5` |
+| **Embeddings** | [SentenceTransformers](https://sbert.net/) — `BAAI/bge-small-en-v1.5` |
 | **LLM Providers** | [Groq](https://groq.com/) · [OpenAI](https://openai.com/) · [Anthropic](https://anthropic.com/) · [Gemini](https://deepmind.google/technologies/gemini/) · [Ollama](https://ollama.com/) |
 | **Rate Limiting** | [slowapi](https://github.com/laurentS/slowapi) |
 | **Containerization** | [Docker](https://docker.com/) + [Docker Compose](https://docs.docker.com/compose/) |
@@ -298,7 +298,7 @@ ALLOWED_EXTENSIONS=pdf,docx,txt,md
 # Ingestion
 CHUNK_SIZE=800
 CHUNK_OVERLAP=120
-EMBEDDING_MODEL=BAAI/bge-base-en-v1.5
+EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 EMBEDDING_BATCH_SIZE=32
 
 # Retrieval
@@ -395,7 +395,7 @@ Chunk text
      │
      ▼
 Generate embeddings
-  (BAAI/bge-base-en-v1.5, 768 dims, batched, singleton)
+  (BAAI/bge-small-en-v1.5, 384 dims, batched, singleton)
      │
      ▼
 Store vectors
@@ -413,7 +413,7 @@ Update metadata  ──►  status: INDEXED
 POST /chat  { "message": "How many leave days do employees get?" }
      │
      ▼
-Embed query  (BAAI/bge-base-en-v1.5)
+Embed query  (BAAI/bge-small-en-v1.5)
      │
      ▼
 Vector search  (pgvector cosine similarity, top-k chunks)
@@ -575,7 +575,7 @@ MIT License — Copyright (c) 2025 Madhav
 - [**shadcn/ui**](https://ui.shadcn.com/) — design system inspiration
 - [**Zustand**](https://github.com/pmndrs/zustand) — minimal, scalable state management
 - [**pgvector**](https://github.com/pgvector/pgvector) — vector similarity search for PostgreSQL
-- [**BAAI**](https://huggingface.co/BAAI/bge-base-en-v1.5) — `bge-base-en-v1.5` embedding model
+- [**BAAI**](https://huggingface.co/BAAI/bge-small-en-v1.5) — `bge-small-en-v1.5` embedding model
 - [**LangChain**](https://python.langchain.com/) — text splitting utilities
 - [**Groq**](https://groq.com/) — default LLM provider, ultra-fast inference
 - [**OpenAI**](https://openai.com/) and [**Anthropic**](https://anthropic.com/) — LLM APIs

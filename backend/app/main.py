@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     logger = logging.getLogger(__name__)
     logger.info("[startup] Eager-loading embedding model to avoid OOM on first request...")
     service = get_embedding_service()
-    service._load_model()  # Load BAAI/bge-base-en-v1.5 (438MB) now, not on first /chat
+    service._load_model()  # Load BAAI/bge-small-en-v1.5 (~130MB) now, not on first /chat
     logger.info("[startup] Embedding model loaded. Application ready.")
     
     yield

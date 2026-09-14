@@ -17,7 +17,7 @@ async def embed_query(query: str) -> list[float]:
     """
     Embed a single query string.
     Runs the CPU-bound encode in a thread pool to avoid blocking the event loop.
-    Returns a normalised 768-dim vector.
+    Returns a normalised 384-dim vector.
     """
     if not query or not query.strip():
         raise EmbeddingError("Query must be a non-empty string.")
