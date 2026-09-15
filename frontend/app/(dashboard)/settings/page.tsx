@@ -11,7 +11,7 @@ import { CHAT_MODE_ICONS } from "@/components/chat/modeIcons"
 import { CHAT_MODE_META, type ChatMode } from "@/types"
 import { cn } from "@/lib/utils"
 
-const sections = ["General", "Appearance", "Chat", "Documents", "Account"] as const
+const sections = ["General", "Appearance", "Chat", "Account"] as const
 
 const MODES: ChatMode[] = ["docuquery", "llm", "hybrid"]
 
@@ -82,21 +82,7 @@ export default function SettingsPage() {
 
             {section === "Chat" && (
               <Panel title="Chat">
-                <div className="divide-y divide-line">
-                  <Switch label="Show citations" checked={settings.showCitations} onChange={v => settings.set("showCitations", v)} />
-                  <Switch label="Auto-expand citations" checked={settings.autoExpandCitations} onChange={v => settings.set("autoExpandCitations", v)} />
-                </div>
-              </Panel>
-            )}
-
-            {section === "Documents" && (
-              <Panel title="Documents">
-                <SelectField
-                  label="Default retrieval count"
-                  value={settings.retrievalCount}
-                  onChange={value => settings.set("retrievalCount", value)}
-                  options={[3, 5, 10].map(n => ({ value: n, label: `${n} chunks` }))}
-                />
+                <Switch label="Show citations" checked={settings.showCitations} onChange={v => settings.set("showCitations", v)} />
               </Panel>
             )}
 
@@ -213,28 +199,6 @@ function Switch({ label, checked, onChange }: { label: string; checked: boolean;
           className="pointer-events-none absolute top-0.5 left-0.5 size-4 rounded-full bg-on-accent transition-transform peer-checked:translate-x-4"
         />
       </span>
-    </div>
-  )
-}
-
-function SelectField({ label, value, onChange, options }: {
-  label: string
-  value: number
-  onChange: (value: number) => void
-  options: { value: number; label: string }[]
-}) {
-  const id = useId()
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <label htmlFor={id}>{label}</label>
-      <select
-        id={id}
-        value={value}
-        onChange={e => onChange(Number(e.target.value))}
-        className="h-9 rounded-control border border-line-strong bg-surface px-2.5 text-body-lg text-fg focus-ring"
-      >
-        {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
     </div>
   )
 }
