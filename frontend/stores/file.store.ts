@@ -8,6 +8,7 @@ interface FileStore {
   loadFiles: () => Promise<void>
   addFile: (file: File) => Promise<void>
   removeFile: (id: string) => void
+  reset: () => void
 }
 
 const mapDocument = (doc: Awaited<ReturnType<typeof documentApi.list>>[number]): FileAttachment => ({
@@ -45,4 +46,7 @@ export const useFileStore = create<FileStore>()((set) => ({
   },
 
   removeFile: (id) => set(s => ({ files: s.files.filter(f => f.id !== id) })),
+
+  // Drops the signed-in user's document list (sign-out / account switch).
+  reset: () => set({ files: [] }),
 }))

@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import type { User } from "@/types"
+import { setClientStateOwner } from "./session"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 
@@ -35,18 +36,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
   isAuthenticated: false,
   isHydrated: false,
   hydrate: async () => {
+    let user: User | null = null
     try {
-      const user = await authRequest<User>("/auth/me")
-      set({ user, isAuthenticated: true, isHydrated: true })
-    } catch {
-      set({ user: null, isAuthenticated: false, isHydrated: true })
-    }
+      user = await authRequest<User>("/auth/me")
+    } catch { /* no valid session */ }
+    // A restored session keeps chats saved before storage became per-user (see bindChatStoreToUser).
+    await setClientStateOwner(user?.id ?? null, { adoptLegacyChats: true })
+    set({ user, isAuthenticated: !!user, isHydrated: true })
   },
   login: async (email, password) => {
     const user = await authRequest<User>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     })
+    await setClientStateOwner(user.id)
     set({ user, isAuthenticated: true, isHydrated: true })
   },
   signup: async (name, email, password) => {
@@ -54,10 +57,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       method: "POST",
       body: JSON.stringify({ name, email, password }),
     })
+    await setClientStateOwner(user.id)
     set({ user, isAuthenticated: true, isHydrated: true })
   },
   logout: async () => {
     try { await authRequest<void>("/auth/logout", { method: "POST" }) } finally {
+      await setClientStateOwner(null)
       set({ user: null, isAuthenticated: false, isHydrated: true })
     }
   },

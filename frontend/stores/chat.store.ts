@@ -1,8 +1,29 @@
 import { create } from "zustand"
-import { persist } from "zustand/middleware"
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
 import type { Conversation, Message, ChatMode, Citation } from "@/types"
 import { generateId } from "@/lib/utils"
 import { chatApi } from "@/services/api"
+
+const CHAT_STORE_KEY = "docuquery-chat-store"
+
+// Saved chats live under a per-user key ("docuquery-chat-store:<userId>"). While nobody is
+// signed in, reads return nothing and writes are dropped, so one account's history is never
+// loaded into — or overwritten by — another account's session in the same browser.
+let storageOwnerId: string | null = null
+
+const userScopedStorage: StateStorage = {
+  getItem: name => (storageOwnerId ? localStorage.getItem(`${name}:${storageOwnerId}`) : null),
+  setItem: (name, value) => { if (storageOwnerId) localStorage.setItem(`${name}:${storageOwnerId}`, value) },
+  removeItem: name => { if (storageOwnerId) localStorage.removeItem(`${name}:${storageOwnerId}`) },
+}
+
+const INITIAL_STATE = {
+  conversations: [] as Conversation[],
+  activeId: null as string | null,
+  activeMode: "docuquery" as ChatMode,
+  isStreaming: false,
+  sidebarOpen: true,
+}
 
 interface ChatStore {
   conversations: Conversation[]
@@ -33,11 +54,7 @@ interface ChatStore {
 }
 
 export const useChatStore = create<ChatStore>()(persist((set, get) => ({
-      conversations: [],
-      activeId: null,
-      activeMode: "docuquery",
-      isStreaming: false,
-      sidebarOpen: true,
+      ...INITIAL_STATE,
 
       setConversations: (conversations) => set({ conversations }),
       setActiveId: (activeId) => set(state => ({
@@ -211,7 +228,10 @@ export const useChatStore = create<ChatStore>()(persist((set, get) => ({
         await get().sendMessage(lastUser.content)
       },
   }), {
-    name: "docuquery-chat-store",
+    name: CHAT_STORE_KEY,
+    storage: createJSONStorage(() => userScopedStorage),
+    // Nothing is loaded until a user is known — see bindChatStoreToUser.
+    skipHydration: true,
     partialize: state => ({
       conversations: state.conversations,
       activeId: state.activeId,
@@ -219,3 +239,28 @@ export const useChatStore = create<ChatStore>()(persist((set, get) => ({
       sidebarOpen: state.sidebarOpen,
     }),
   }))
+
+/**
+ * Points the chat store at one user's saved history. The in-memory state is always cleared
+ * first (with storage detached, so the reset is not saved over the previous user's history);
+ * passing null leaves it empty and detached. Chats saved before storage was per-user have no
+ * known owner: `adoptLegacyChats` assigns them to this user, otherwise they are discarded.
+ */
+export async function bindChatStoreToUser(userId: string | null, { adoptLegacyChats = false } = {}) {
+  storageOwnerId = null
+  useChatStore.setState(INITIAL_STATE)
+  if (!userId) return
+  migrateLegacyChats(userId, adoptLegacyChats)
+  storageOwnerId = userId
+  await useChatStore.persist.rehydrate()
+}
+
+function migrateLegacyChats(userId: string, adopt: boolean) {
+  try {
+    const legacy = localStorage.getItem(CHAT_STORE_KEY)
+    if (legacy === null) return
+    const userKey = `${CHAT_STORE_KEY}:${userId}`
+    if (adopt && localStorage.getItem(userKey) === null) localStorage.setItem(userKey, legacy)
+    localStorage.removeItem(CHAT_STORE_KEY)
+  } catch { /* storage unavailable (private mode, blocked) — nothing to migrate */ }
+}
