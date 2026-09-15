@@ -37,7 +37,7 @@ function createConversation(title = "New Chat"): Conversation {
 }
 
 /**
- * Ctrl+K quick actions. "New chat" is always the first result, so opening the palette and
+ * Ctrl+K / ⌘K quick actions. "New chat" is always the first result, so opening the palette and
  * pressing Enter does what Ctrl+K did before: create a conversation and open /chat.
  */
 export function CommandPalette({ open, onOpenChange, returnFocusRef }: {

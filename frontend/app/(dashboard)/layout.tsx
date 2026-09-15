@@ -14,7 +14,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [paletteOpen, setPaletteOpen] = useState(false)
   // The drawer returns focus here when it closes (browsers don't reliably focus a clicked button).
   const mobileNavTriggerRef = useRef<HTMLButtonElement>(null)
-  // Where focus goes when the palette closes: the button that opened it, or whatever had focus for Ctrl+K.
+  // Where focus goes when the palette closes: the button that opened it, or whatever had focus for the shortcut.
   const paletteReturnFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -26,12 +26,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setPaletteOpen(true)
   }
 
-  // Ctrl+K toggles the quick-actions palette. Its first result is "New chat", so Ctrl+K then
-  // Enter reproduces the previous shortcut (create a conversation and open /chat).
+  // Ctrl+K or ⌘K toggles the quick-actions palette. Its first result is "New chat", so the shortcut
+  // then Enter reproduces the previous Ctrl+K behavior (create a conversation and open /chat).
   useKeyboardShortcuts([
     {
       key: "k",
-      ctrl: true,
+      mod: true,
       action: () => (paletteOpen ? setPaletteOpen(false) : openPalette()),
     },
   ])

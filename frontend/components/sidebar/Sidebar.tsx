@@ -16,6 +16,7 @@ import type { Conversation } from "@/types"
 import toast from "react-hot-toast"
 import Link from "next/link"
 import { getDefaultChatMode } from "@/stores/settings.store"
+import { useIsApplePlatform } from "@/lib/platform"
 
 // ─── Time grouping helpers ────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef, onOpen
   const { sidebarOpen, toggleSidebar } = useChatStore()
   const handleNew = useNewConversation()
   const closeNavRef = useRef<HTMLButtonElement>(null)
+  const isApple = useIsApplePlatform()
 
   // Close the drawer if the viewport grows past the mobile breakpoint while it is open.
   useEffect(() => {
@@ -112,12 +114,12 @@ export function Sidebar({ mobileOpen, onMobileOpenChange, returnFocusRef, onOpen
               <ChevronRight className="size-4" aria-hidden="true" />
             </Button>
           </Tooltip>
-          <Tooltip content="Quick actions (Ctrl+K)" side="right">
+          <Tooltip content={`Quick actions (${isApple ? "⌘K" : "Ctrl+K"})`} side="right">
             <Button
               variant="ghost"
               size="icon"
               aria-label="Quick actions"
-              aria-keyshortcuts="Control+K"
+              aria-keyshortcuts="Control+K Meta+K"
               onClick={event => onOpenCommandPalette(event.currentTarget)}
             >
               <Zap className="size-4" aria-hidden="true" />
@@ -176,6 +178,7 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
   const handleNew = useNewConversation()
   const [search, setSearch] = useState("")
   const groupIdPrefix = useId()
+  const isApple = useIsApplePlatform()
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -238,12 +241,12 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
         <button
           type="button"
           onClick={openQuickActions}
-          aria-keyshortcuts="Control+K"
+          aria-keyshortcuts="Control+K Meta+K"
           className="flex w-full items-center gap-2 rounded-control border border-line bg-surface px-2 py-1.5 text-left text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg focus-ring"
         >
           <Zap className="size-4 shrink-0 text-fg-subtle" aria-hidden="true" />
           <span className="flex-1">Quick actions</span>
-          <kbd className="rounded-control border border-line bg-surface-muted px-1.5 font-mono text-micro text-fg-subtle">Ctrl K</kbd>
+          <kbd className="rounded-control border border-line bg-surface-muted px-1.5 font-mono text-micro text-fg-subtle">{isApple ? "⌘K" : "Ctrl K"}</kbd>
         </button>
       </div>
 
