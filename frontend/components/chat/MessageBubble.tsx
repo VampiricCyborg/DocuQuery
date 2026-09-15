@@ -38,7 +38,7 @@ export function MessageBubble({ message, isLast }: { message: Message; isLast: b
         className="group flex flex-col items-end gap-1"
       >
         <span className="sr-only">You said:</span>
-        <div className="max-w-[85%] rounded-card bg-surface-muted px-3.5 py-2.5 text-body-lg text-fg sm:max-w-[75%]">
+        <div className="max-w-5/6 rounded-card bg-surface-muted px-3.5 py-2.5 text-body-lg text-fg sm:max-w-3/4">
           <div className="prose">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
           </div>
@@ -78,7 +78,7 @@ export function MessageBubble({ message, isLast }: { message: Message; isLast: b
         {streaming && !message.content ? (
           <TypingIndicator />
         ) : (
-          <div className="max-w-[68ch] text-body-lg text-fg">
+          <div className="max-w-reading text-body-lg text-fg">
             <div className="prose">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
             </div>

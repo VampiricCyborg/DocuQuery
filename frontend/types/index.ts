@@ -12,23 +12,18 @@ export interface User {
 // ─── Chat Mode ───────────────────────────────────────────────────────────────
 export type ChatMode = "docuquery" | "llm" | "hybrid"
 
-export const CHAT_MODE_META: Record<ChatMode, { label: string; icon: string; color: string; description: string }> = {
+// Mode icons live in components/chat/modeIcons.ts; mode colors are not used (modes share the neutral tokens).
+export const CHAT_MODE_META: Record<ChatMode, { label: string; description: string }> = {
   docuquery: {
     label: "DocuQuery",
-    icon: "⚡",
-    color: "text-emerald-400",
     description: "Answers grounded in your uploaded documents only",
   },
   llm: {
     label: "LLM",
-    icon: "🤖",
-    color: "text-blue-400",
     description: "General AI conversation — no document retrieval",
   },
   hybrid: {
     label: "Hybrid",
-    icon: "🧠",
-    color: "text-purple-400",
     description: "Documents first, then LLM knowledge to fill gaps",
   },
 }

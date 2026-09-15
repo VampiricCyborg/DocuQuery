@@ -314,7 +314,7 @@ export function StyleGuide() {
               {SPACING.map(s => (
                 <div key={s.px} className="flex items-center gap-3">
                   <span className="w-10 text-right font-mono text-caption text-fg-muted">{s.px}px</span>
-                  <span className={cn("h-3 rounded-sm bg-fg-subtle", s.className)} />
+                  <span className={cn("h-3 rounded-full bg-fg-subtle", s.className)} />
                 </div>
               ))}
             </div>

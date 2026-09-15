@@ -12,6 +12,15 @@
    The live reference is /style-guide (development only). */
 
 @theme static {
+  /* Only the tokens in this file exist. Tailwind's default palette, type scale, radii and
+     shadows are switched off, so raw classes such as bg-blue-600, text-sm, rounded-lg or
+     shadow-md generate no CSS and can't creep back in. (--container-* stays: container-query
+     breakpoints like @2xl use it.) */
+  --color-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+
   /* Surfaces */
   --color-canvas: #faf9f6;          /* page background */
   --color-surface: #ffffff;         /* cards, inputs, panels */
@@ -70,6 +79,9 @@
   --text-display: 3.5rem;
   --text-display--line-height: 3.5rem;
   --text-display--letter-spacing: -0.03em;
+
+  /* Reading width for long-form text (assistant answers) */
+  --container-reading: 68ch;
 
   /* Radius */
   --radius-control: 0.375rem;       /* 6px — buttons, inputs, chips */
