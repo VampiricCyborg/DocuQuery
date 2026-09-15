@@ -1,50 +1,44 @@
 "use client"
-import { motion } from "framer-motion"
-import { Wrench } from "lucide-react"
-import type { Agent } from "@/types"
-import { Badge } from "@/components/ui/Badge"
+import { Bot, Check } from "lucide-react"
+import type { Agent, ChatMode } from "@/types"
+import { CHAT_MODE_ICONS } from "@/components/chat/modeIcons"
 import { cn } from "@/lib/utils"
 
-const colorMap: Record<string, string> = {
-  blue: "from-blue-600/20 to-blue-600/5 border-blue-500/20",
-  green: "from-green-600/20 to-green-600/5 border-green-500/20",
-  purple: "from-purple-600/20 to-purple-600/5 border-purple-500/20",
-  orange: "from-orange-600/20 to-orange-600/5 border-orange-500/20",
-}
-
-const statusVariant: Record<Agent["status"], "success" | "warning" | "error"> = {
-  idle: "success", running: "warning", error: "error",
-}
-
-export function AgentCard({ agent, selected, onClick }: {
+export function AgentCard({ agent, selected = false, onClick }: {
   agent: Agent
   selected?: boolean
   onClick?: () => void
 }) {
+  const Icon = CHAT_MODE_ICONS[agent.id as ChatMode] ?? Bot
+  const descriptionId = `agent-${agent.id}-description`
+
   return (
-    <motion.div
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
+    <button
+      type="button"
       onClick={onClick}
+      aria-pressed={selected}
+      aria-label={agent.name}
+      aria-describedby={descriptionId}
       className={cn(
-        "cursor-pointer rounded-xl border bg-gradient-to-br p-4 transition-all",
-        colorMap[agent.color] ?? colorMap.blue,
-        selected && "ring-2 ring-blue-500"
+        "flex w-full flex-col items-start gap-3 rounded-card border bg-surface p-4 text-left transition-colors hover:bg-surface-muted focus-ring",
+        selected ? "border-accent ring-1 ring-accent" : "border-line"
       )}
     >
-      <div className="flex items-start justify-between mb-3">
-        <span className="text-2xl">{agent.icon}</span>
-        <Badge variant={statusVariant[agent.status]}>{agent.status}</Badge>
-      </div>
-      <h3 className="font-semibold text-white text-sm">{agent.name}</h3>
-      <p className="mt-1 text-xs text-neutral-400">{agent.description}</p>
-      <div className="mt-3 flex flex-wrap gap-1">
-        {agent.tools.map(t => (
-          <span key={t} className="flex items-center gap-1 rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-neutral-400">
-            <Wrench className="h-2.5 w-2.5" />{t}
+      <span className="flex w-full items-center justify-between gap-2">
+        <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-control border border-line bg-canvas text-fg-muted">
+          <Icon className="size-4" />
+        </span>
+        {/* aria-pressed already announces the selection */}
+        {selected && (
+          <span aria-hidden="true" className="inline-flex items-center gap-1 text-caption font-medium text-accent-strong">
+            <Check className="size-3.5" />Selected
           </span>
-        ))}
-      </div>
-    </motion.div>
+        )}
+      </span>
+      <span className="block">
+        <span className="block font-medium text-fg">{agent.name}</span>
+        <span id={descriptionId} className="mt-1 block text-caption text-fg-muted">{agent.description}</span>
+      </span>
+    </button>
   )
 }

@@ -25,27 +25,30 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold text-white">AI Agents</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">Select an agent to power your conversations</p>
-        </div>
+    <div className="flex-1 overflow-y-auto bg-canvas px-4 py-6 text-body text-fg sm:px-6 sm:py-8">
+      {/* Columns follow the content width, which changes with the sidebar, not the window */}
+      <div className="@container mx-auto max-w-4xl space-y-6">
+        <header>
+          <h1 className="text-title-lg font-semibold">AI Agents</h1>
+          <p className="mt-1 text-fg-muted">Select an agent to power your conversations</p>
+        </header>
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+          <div className="grid gap-3 @2xl:grid-cols-3">
+            <p className="sr-only">Loading agents…</p>
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-card" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <ul className="grid gap-3 @2xl:grid-cols-3">
             {agents.map(agent => (
-              <AgentCard
-                key={agent.id}
-                agent={agent}
-                selected={selectedAgent?.id === agent.id}
-                onClick={() => chooseAgent(agent)}
-              />
+              <li key={agent.id} className="flex">
+                <AgentCard
+                  agent={agent}
+                  selected={selectedAgent?.id === agent.id}
+                  onClick={() => chooseAgent(agent)}
+                />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
     </div>
