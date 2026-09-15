@@ -46,9 +46,6 @@ const WORKFLOW = [
 
 const FOOTER_LINKS = [
   { href: "https://github.com", label: "GitHub", external: true },
-  { href: "#", label: "Documentation" },
-  { href: "#", label: "Privacy" },
-  { href: "#", label: "About" },
 ]
 
 /** Fade-and-rise once as a section scrolls into view. */
