@@ -1,37 +1,64 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import {
-  ArrowRight, Bot, FileText, MessageSquare,
-  Search, Sparkles, Upload, Zap, CheckCircle2, Clock3,
-} from "lucide-react"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import { ArrowRight, FileText, MessageSquare, MessageSquarePlus, Upload, type LucideIcon } from "lucide-react"
 import { useAuthStore } from "@/stores/auth.store"
 import { useFileStore } from "@/stores/file.store"
 import { useChatStore } from "@/stores/chat.store"
-import { MOCK_CONVERSATIONS } from "@/services/mock"
-import { formatRelative, truncate } from "@/lib/utils"
-import type { Conversation } from "@/types"
+import { Button } from "@/components/ui/Button"
+import { Badge } from "@/components/ui/Badge"
+import { Skeleton } from "@/components/ui/Skeleton"
+import { FileStatus } from "@/components/file-upload/FileUploadZone"
+import { CHAT_MODE_ICONS } from "@/components/chat/modeIcons"
+import { CHAT_MODE_META, type ChatMode, type Conversation } from "@/types"
+import { cn, formatBytes, formatRelative } from "@/lib/utils"
+import { transition } from "@/lib/motion"
+
+const MODES: ChatMode[] = ["docuquery", "llm", "hybrid"]
+const RECENT_LIMIT = 5
+// Uploads still in flight have no server timestamp yet, and they are the newest items.
+const uploadedAtKey = (uploadedAt?: string) => uploadedAt ?? "9999"
+
+const rowClass = "flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-muted focus-ring-inset"
+const linkClass = "inline-flex items-center gap-1 rounded-control text-caption text-fg-muted transition-colors hover:text-fg focus-ring"
 
 export default function DashboardPage() {
   const user = useAuthStore(s => s.user)
-  const { files, loadFiles } = useFileStore()
+  const files = useFileStore(s => s.files)
+  const loadFiles = useFileStore(s => s.loadFiles)
   const conversations = useChatStore(s => s.conversations)
   const addConversation = useChatStore(s => s.addConversation)
   const activeMode = useChatStore(s => s.activeMode)
   const router = useRouter()
+  const [filesLoaded, setFilesLoaded] = useState(false)
 
-  useEffect(() => { void loadFiles() }, [loadFiles])
+  useEffect(() => {
+    let mounted = true
+    void loadFiles().finally(() => { if (mounted) setFilesLoaded(true) })
+    return () => { mounted = false }
+  }, [loadFiles])
 
-  const recentConversations = conversations.length ? conversations : MOCK_CONVERSATIONS
-  const recentFiles = files.slice(0, 3)
   const firstName = user?.name?.split(" ")[0] || "there"
   const hour = new Date().getHours()
-  const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening"
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
 
-  const startChat = (mode = activeMode) => {
+  // Placeholders only while the first request is out; later visits already have the list in the store.
+  const filesLoading = !filesLoaded && files.length === 0
+  const indexed = files.filter(f => f.status === "ready").length
+  const inProgress = files.filter(f => f.status === "uploading" || f.status === "processing").length
+  const failed = files.filter(f => f.status === "error").length
+  const totalSize = files.reduce((sum, f) => sum + f.size, 0)
+  const recentFiles = [...files]
+    .sort((a, b) => uploadedAtKey(b.uploadedAt).localeCompare(uploadedAtKey(a.uploadedAt)))
+    .slice(0, RECENT_LIMIT)
+  const recentChats = [...conversations]
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, RECENT_LIMIT)
+
+  const startChat = (mode: ChatMode = activeMode) => {
     const now = new Date().toISOString()
     const conversation: Conversation = {
       id: crypto.randomUUID(), title: "New Chat", messages: [], mode,
@@ -42,61 +69,229 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,.10),transparent_34%),#0a0a0a] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative overflow-hidden rounded-3xl border border-neutral-800 bg-gradient-to-br from-neutral-900 via-neutral-900 to-blue-950/30 p-6 shadow-2xl sm:p-8">
-          <div className="pointer-events-none absolute -right-24 -top-32 h-72 w-72 rounded-full bg-blue-600/15 blur-3xl" />
-          <div className="relative">
-            <p className="mb-2 text-sm font-medium text-blue-300">Your AI workspace</p>
-            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{greeting}, {firstName}</h1>
-            <p className="mt-2 text-neutral-400">What would you like to do today?</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <ActionCard icon={Upload} title="Upload Document" description="Add files to your knowledge base" href="/files" />
-              <ActionCard icon={MessageSquare} title="New Chat" description="Start a fresh conversation" onClick={() => startChat()} />
-              <ActionCard icon={Sparkles} title="Ask with AI" description="Get grounded, intelligent answers" onClick={() => router.push("/mode-select")} />
-            </div>
+    <div className="flex-1 overflow-y-auto bg-canvas px-4 py-6 text-body text-fg sm:px-6 sm:py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={transition.base}
+        className="mx-auto max-w-5xl space-y-8"
+      >
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-title-lg font-semibold">{greeting}, {firstName}</h1>
+            <p className="mt-1 text-fg-muted">What would you like to do today?</p>
           </div>
-        </motion.section>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" asChild>
+              <Link href="/files"><Upload className="size-4" aria-hidden="true" />Upload documents</Link>
+            </Button>
+            <Button onClick={() => startChat()}>
+              <MessageSquarePlus className="size-4" aria-hidden="true" />New chat
+            </Button>
+          </div>
+        </header>
 
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
-          <Panel title="Continue Working" action={<Link href="/chat" className="text-xs text-blue-400 hover:text-blue-300">View chats</Link>}>
-            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.06] p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15"><FileText className="h-5 w-5 text-blue-300" /></div>
-                <div className="min-w-0 flex-1"><p className="truncate font-medium text-white">Assignment 2 DAV.docx</p><p className="mt-1 text-xs text-neutral-500">Last chat: Summarize the assignment</p><p className="mt-2 text-[11px] text-neutral-600">2 minutes ago</p></div>
-                <Link href="/chat" className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-500">Continue <ArrowRight className="h-3 w-3" /></Link>
-              </div>
-            </div>
-          </Panel>
-
-          <Panel title="Storage">
-            <div className="flex items-end justify-between"><div><p className="text-2xl font-semibold text-white">{files.length || 23} <span className="text-sm font-normal text-neutral-500">/ 50 documents</span></p><p className="mt-1 text-xs text-neutral-500">1.8 GB / 5 GB used</p></div><div className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">Healthy</div></div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-neutral-800"><div className="h-full w-[46%] rounded-full bg-gradient-to-r from-blue-500 to-purple-500" /></div>
-            <div className="mt-5 grid grid-cols-2 gap-3"><MiniStat icon={Zap} label="Current mode" value={activeMode === "docuquery" ? "DocuQuery" : activeMode === "llm" ? "General AI" : "Hybrid"} /><MiniStat icon={CheckCircle2} label="Indexing status" value="All systems ready" /></div>
-          </Panel>
-        </div>
+        <section aria-labelledby="overview-heading">
+          <h2 id="overview-heading" className="sr-only">Overview</h2>
+          {/* Dividers are per-tile borders (2×2 grid on small screens, one row from lg) — 1px grid gaps
+              land on fractional pixels and render some dividers twice as thick */}
+          <dl className="grid grid-cols-2 overflow-hidden rounded-card border border-line bg-surface lg:grid-cols-4">
+            <Stat label="Documents" value={files.length} hint={`${formatBytes(totalSize)} total`} loading={filesLoading} />
+            <Stat
+              label="Indexed"
+              value={indexed}
+              hint={failed ? `${failed} failed` : indexed ? "Ready to query" : "None yet"}
+              tone={failed ? "danger" : undefined}
+              loading={filesLoading}
+              className="border-l"
+            />
+            <Stat
+              label="Processing"
+              value={inProgress}
+              hint={inProgress ? "Being indexed" : "Nothing queued"}
+              loading={filesLoading}
+              className="border-t lg:border-t-0 lg:border-l"
+            />
+            <Stat label="Chats" value={conversations.length} hint="Saved on this device" className="border-t border-l lg:border-t-0" />
+          </dl>
+        </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Recent Documents" action={<Link href="/files" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">View all <ArrowRight className="h-3 w-3" /></Link>}>
-            <div className="space-y-2">{(recentFiles.length ? recentFiles : [
-              { id: "dav", name: "DAV.docx", status: "ready" }, { id: "research", name: "ResearchPaper.pdf", status: "ready" }, { id: "resume", name: "Resume.pdf", status: "processing" },
-            ]).map(file => <DocumentRow key={file.id} name={file.name} status={file.status === "ready" ? "Indexed" : "Processing..."} />)}</div>
+          <Panel headingId="recent-chats-heading" title="Recent chats" action={<ViewAllLink href="/chat" label="chats" />}>
+            {recentChats.length > 0 ? (
+              <ul className="divide-y divide-line">
+                {recentChats.map(chat => {
+                  const ModeIcon = CHAT_MODE_ICONS[chat.mode] ?? MessageSquare
+                  return (
+                    <li key={chat.id}>
+                      <Link href={`/chat/${chat.id}`} className={rowClass}>
+                        <ModeIcon className="size-4 shrink-0 text-fg-subtle" aria-hidden="true" />
+                        <span className="min-w-0 flex-1 truncate">{chat.title}</span>
+                        <time dateTime={chat.updatedAt} className="shrink-0 text-caption text-fg-subtle tabular-nums">
+                          {formatRelative(chat.updatedAt)}
+                        </time>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <EmptyState icon={MessageSquare} title="No chats yet" description="Start a chat to ask questions about your documents.">
+                <Button variant="secondary" size="sm" onClick={() => startChat()}>New chat</Button>
+              </EmptyState>
+            )}
           </Panel>
-          <Panel title="Recent Conversations" action={<Link href="/chat" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">View all <ArrowRight className="h-3 w-3" /></Link>}>
-            <div className="space-y-1">{recentConversations.slice(0, 4).map(c => <Link key={c.id} href={`/chat/${c.id}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-neutral-800"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10"><MessageSquare className="h-4 w-4 text-purple-300" /></div><span className="flex-1 truncate text-sm text-neutral-300">{truncate(c.title, 40)}</span><span className="text-[11px] text-neutral-600">{formatRelative(c.updatedAt)}</span></Link>)}</div>
+
+          <Panel headingId="recent-documents-heading" title="Recent documents" action={<ViewAllLink href="/files" label="documents" />}>
+            {filesLoading ? (
+              <div>
+                <p className="sr-only">Loading documents…</p>
+                <ul aria-hidden="true" className="divide-y divide-line">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <li key={i} className="flex items-center gap-3 px-4 py-3">
+                      <Skeleton className="size-4 shrink-0" />
+                      <Skeleton className="h-3.5 flex-1" />
+                      <Skeleton className="h-4 w-16 rounded-full" />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : recentFiles.length > 0 ? (
+              <ul className="divide-y divide-line">
+                {recentFiles.map(file => (
+                  <li key={file.id}>
+                    <Link href={`/files?highlight=${file.id}`} className={rowClass}>
+                      <FileText className="size-4 shrink-0 text-fg-subtle" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{file.name}</span>
+                      <FileStatus file={file} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState icon={FileText} title="No documents yet" description="Upload a PDF, DOCX, TXT or MD file to start asking questions about it.">
+                <Button variant="secondary" size="sm" asChild>
+                  <Link href="/files">Upload documents</Link>
+                </Button>
+              </EmptyState>
+            )}
           </Panel>
         </div>
 
-        <Panel title="Quick Actions">
-          <div className="grid gap-3 sm:grid-cols-4"><QuickAction icon={Upload} label="Upload File" href="/files" /><QuickAction icon={Sparkles} label="Start Hybrid Chat" onClick={() => router.push("/mode-select")} /><QuickAction icon={Search} label="Ask Documents" onClick={() => startChat("docuquery")} /><QuickAction icon={Bot} label="General AI Chat" onClick={() => startChat("llm")} /></div>
-        </Panel>
-      </div>
+        <section aria-labelledby="start-chat-heading" className="space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <h2 id="start-chat-heading" className="font-medium">Start a chat</h2>
+            <Link href="/mode-select" className={linkClass}>
+              Compare modes<ArrowRight className="size-3" aria-hidden="true" />
+            </Link>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-3">
+            {MODES.map(mode => {
+              const meta = CHAT_MODE_META[mode]
+              const ModeIcon = CHAT_MODE_ICONS[mode]
+              const current = mode === activeMode
+              return (
+                <li key={mode} className="flex">
+                  <button
+                    type="button"
+                    onClick={() => startChat(mode)}
+                    aria-label={`New ${meta.label} chat${current ? ", current mode" : ""}`}
+                    aria-describedby={`mode-${mode}-description`}
+                    className="group flex w-full items-start gap-3 rounded-card border border-line bg-surface p-3.5 text-left transition-colors hover:bg-surface-muted focus-ring"
+                  >
+                    <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-control border border-line bg-canvas text-fg-muted">
+                      <ModeIcon className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium">{meta.label}</span>
+                        {current && <Badge>Current</Badge>}
+                      </span>
+                      <span id={`mode-${mode}-description`} className="mt-0.5 block text-caption text-fg-muted">
+                        {meta.description}
+                      </span>
+                    </span>
+                    <ArrowRight
+                      className="mt-1 size-3.5 shrink-0 text-fg-subtle transition-transform group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      </motion.div>
     </div>
   )
 }
 
-function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) { return <section className="rounded-2xl border border-neutral-800 bg-neutral-900/80 p-5 shadow-xl shadow-black/10"><div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold text-white">{title}</h2>{action}</div>{children}</section> }
-function ActionCard({ icon: Icon, title, description, href, onClick }: { icon: typeof Upload; title: string; description: string; href?: string; onClick?: () => void }) { const body = <><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10"><Icon className="h-5 w-5 text-blue-200" /></div><div className="mt-4 text-left"><p className="font-medium text-white">{title}</p><p className="mt-1 text-xs text-neutral-500">{description}</p></div><ArrowRight className="absolute right-4 top-4 h-4 w-4 text-neutral-600 transition-transform group-hover:translate-x-1 group-hover:text-blue-300" /></>; return href ? <Link href={href} className="group relative rounded-2xl border border-neutral-700/70 bg-white/[0.03] p-4 transition-all hover:-translate-y-0.5 hover:border-blue-500/50 hover:bg-blue-500/[0.07]">{body}</Link> : <button onClick={onClick} className="group relative rounded-2xl border border-neutral-700/70 bg-white/[0.03] p-4 transition-all hover:-translate-y-0.5 hover:border-blue-500/50 hover:bg-blue-500/[0.07]">{body}</button> }
-function DocumentRow({ name, status }: { name: string; status: string }) { const ready = status === "Indexed"; return <div className="flex items-center gap-3 rounded-xl p-3 hover:bg-neutral-800"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-800"><FileText className="h-4 w-4 text-blue-300" /></div><span className="flex-1 truncate text-sm text-neutral-300">{name}</span><span className={`flex items-center gap-1.5 text-xs ${ready ? "text-emerald-300" : "text-amber-300"}`}>{ready ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock3 className="h-3.5 w-3.5" />}{status}</span></div> }
-function QuickAction({ icon: Icon, label, href, onClick }: { icon: typeof Upload; label: string; href?: string; onClick?: () => void }) { const body = <><Icon className="h-4 w-4 text-blue-300" /><span>{label}</span><ArrowRight className="ml-auto h-3.5 w-3.5 text-neutral-600" /></>; return href ? <Link href={href} className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/50 p-3 text-xs text-neutral-300 hover:border-blue-500/40 hover:text-white">{body}</Link> : <button onClick={onClick} className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-950/50 p-3 text-left text-xs text-neutral-300 hover:border-blue-500/40 hover:text-white">{body}</button> }
-function MiniStat({ icon: Icon, label, value }: { icon: typeof Zap; label: string; value: string }) { return <div className="rounded-xl border border-neutral-800 bg-neutral-950/50 p-3"><div className="flex items-center gap-1.5 text-[11px] text-neutral-500"><Icon className="h-3.5 w-3.5 text-blue-300" />{label}</div><p className="mt-2 text-xs font-medium text-neutral-200">{value}</p></div> }
+function Stat({ label, value, hint, tone, loading = false, className }: {
+  label: string
+  value: number
+  hint: string
+  tone?: "danger"
+  loading?: boolean
+  className?: string
+}) {
+  return (
+    <div className={cn("min-w-0 border-line px-4 py-3.5", className)}>
+      <dt className="text-caption text-fg-muted">{label}</dt>
+      {loading ? (
+        // Same height as the loaded value and hint, so the strip doesn't jump when data arrives
+        <dd className="mt-1.5 space-y-2">
+          <Skeleton className="h-6 w-10" />
+          <Skeleton className="h-3 w-20" />
+          <span className="sr-only">Loading</span>
+        </dd>
+      ) : (
+        <>
+          <dd className="mt-1 text-title font-semibold tabular-nums">{value.toLocaleString()}</dd>
+          <dd className={cn("mt-0.5 truncate text-caption", tone === "danger" ? "text-danger" : "text-fg-subtle")}>{hint}</dd>
+        </>
+      )}
+    </div>
+  )
+}
+
+function Panel({ headingId, title, action, children }: {
+  headingId: string
+  title: string
+  action: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <section aria-labelledby={headingId} className="flex min-w-0 flex-col overflow-hidden rounded-card border border-line bg-surface">
+      <div className="flex h-11 shrink-0 items-center justify-between gap-4 border-b border-line px-4">
+        <h2 id={headingId} className="font-medium">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function ViewAllLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link href={href} className={linkClass}>
+      View all<span className="sr-only"> {label}</span>
+      <ArrowRight className="size-3" aria-hidden="true" />
+    </Link>
+  )
+}
+
+function EmptyState({ icon: Icon, title, description, children }: {
+  icon: LucideIcon
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
+      <Icon className="size-5 text-fg-subtle" aria-hidden="true" />
+      <p className="mt-3 font-medium">{title}</p>
+      <p className="mt-1 max-w-xs text-fg-muted">{description}</p>
+      <div className="mt-4">{children}</div>
+    </div>
+  )
+}

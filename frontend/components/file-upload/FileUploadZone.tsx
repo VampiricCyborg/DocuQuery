@@ -135,7 +135,7 @@ function FileRow({ file, highlighted, onRemove }: { file: FileAttachment; highli
 }
 
 /** Status is always spelled out; progress only appears when the upload reports a real number. */
-function FileStatus({ file }: { file: FileAttachment }) {
+export function FileStatus({ file }: { file: FileAttachment }) {
   if (file.status === "ready") {
     return <Badge variant="success"><CheckCircle2 className="size-3" aria-hidden="true" />Indexed</Badge>
   }
