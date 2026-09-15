@@ -1,29 +1,52 @@
 "use client"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, Loader2, CheckCircle, XCircle } from "lucide-react"
-import { useState } from "react"
+import { ChevronDown, Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { useId, useState } from "react"
 import type { ToolCall } from "@/types"
 import { cn } from "@/lib/utils"
+import { transition } from "@/lib/motion"
+
+const STATUS = {
+  pending: { label: "Pending", icon: <Loader2 className="size-3.5 animate-spin text-warning" aria-hidden="true" /> },
+  running: { label: "Running", icon: <Loader2 className="size-3.5 animate-spin text-accent-strong" aria-hidden="true" /> },
+  done: { label: "Completed", icon: <CheckCircle2 className="size-3.5 text-success" aria-hidden="true" /> },
+  error: { label: "Failed", icon: <XCircle className="size-3.5 text-danger" aria-hidden="true" /> },
+}
 
 export function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
   const [open, setOpen] = useState(false)
-  const icons = { pending: <Loader2 className="h-3 w-3 animate-spin text-yellow-400" />, running: <Loader2 className="h-3 w-3 animate-spin text-blue-400" />, done: <CheckCircle className="h-3 w-3 text-green-400" />, error: <XCircle className="h-3 w-3 text-red-400" /> }
+  const bodyId = useId()
+  const status = STATUS[toolCall.status]
 
   return (
-    <div className="rounded-lg border border-neutral-700 bg-neutral-900 text-xs overflow-hidden mb-1">
-      <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-neutral-800 transition-colors">
-        {icons[toolCall.status]}
-        <span className="text-neutral-300 font-mono">{toolCall.name}</span>
-        <ChevronDown className={cn("ml-auto h-3 w-3 text-neutral-500 transition-transform", open && "rotate-180")} />
+    <div className="overflow-hidden rounded-card border border-line bg-surface text-caption">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        aria-controls={bodyId}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-surface-muted focus-ring-inset"
+      >
+        {status.icon}
+        <span className="font-mono text-fg">{toolCall.name}</span>
+        <span className="sr-only">{status.label}</span>
+        <ChevronDown className={cn("ml-auto size-3.5 text-fg-subtle transition-transform", open && "rotate-180")} aria-hidden="true" />
       </button>
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {open && (
-          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
-            <pre className="px-3 py-2 text-neutral-400 overflow-x-auto border-t border-neutral-800">
+          <motion.div
+            id={bodyId}
+            initial={{ height: 0 }}
+            animate={{ height: "auto" }}
+            exit={{ height: 0 }}
+            transition={transition.slow}
+            className="overflow-hidden"
+          >
+            <pre className="overflow-x-auto border-t border-line bg-canvas px-3 py-2 font-mono text-fg-muted">
               {JSON.stringify(toolCall.input, null, 2)}
             </pre>
             {toolCall.output && (
-              <pre className="px-3 py-2 text-green-400 overflow-x-auto border-t border-neutral-800">
+              <pre className="overflow-x-auto border-t border-line bg-canvas px-3 py-2 font-mono text-fg">
                 {toolCall.output}
               </pre>
             )}

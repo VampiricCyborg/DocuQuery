@@ -183,8 +183,13 @@ export const useChatStore = create<ChatStore>()(persist((set, get) => ({
         set({ isStreaming: true })
 
         try {
+          // An `error` event from the server (e.g. the LLM provider is down) marks the answer as failed
+          // instead of leaving an empty "done" message.
+          let serverError = false
           for await (const event of chatApi.stream(content, activeId, mode)) {
-            if (event.type === "token") {
+            if (event.type === "error") {
+              serverError = true
+            } else if (event.type === "token") {
               appendToken(event.data)
             } else if (event.type === "citations") {
               // Map CitationOut → Citation (same shape, just normalizing)
@@ -200,9 +205,8 @@ export const useChatStore = create<ChatStore>()(persist((set, get) => ({
                 }))
               )
             }
-            // error events are swallowed here; the status turns to "error" in catch
           }
-          setAiStatus("done")
+          setAiStatus(serverError ? "error" : "done")
         } catch {
           setAiStatus("error")
         } finally {
