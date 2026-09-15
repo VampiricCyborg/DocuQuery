@@ -1,4 +1,5 @@
 "use client"
+import { usePathname } from "next/navigation"
 import { Menu, PanelLeft } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
 import { Button } from "@/components/ui/Button"
@@ -10,7 +11,10 @@ export function TopBar({ onOpenMobileNav, mobileNavTriggerRef }: {
   mobileNavTriggerRef: React.Ref<HTMLButtonElement>
 }) {
   const { toggleSidebar, sidebarOpen, activeConversation } = useChatStore()
-  const active = activeConversation()
+  const pathname = usePathname()
+  // The open conversation stays selected while you visit other pages; only name it where it is on screen.
+  const onChatPage = pathname === "/chat" || pathname.startsWith("/chat/")
+  const active = onChatPage ? activeConversation() : undefined
 
   return (
     <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-canvas px-3 text-body text-fg">
