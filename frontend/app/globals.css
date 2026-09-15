@@ -167,16 +167,6 @@
   to { transform: translateX(0); }
 }
 
-/* Transitional: app pages that are not yet on tokens (Phases 5–9) still expect the
-   original dark ground. Applied to the app shell's content area only; delete this
-   class and its usage once every dashboard page has been migrated. */
-@layer components {
-  .legacy-page {
-    background-color: #0a0a0a;
-    color: #ffffff;
-  }
-}
-
 * {
   box-sizing: border-box;
 }

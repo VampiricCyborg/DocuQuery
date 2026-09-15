@@ -48,8 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar mobileNavTriggerRef={mobileNavTriggerRef} onOpenMobileNav={() => setMobileNavOpen(true)} />
-        {/* legacy-page: temporary dark ground until the pages themselves move to tokens (Phases 5–9) */}
-        <main className="legacy-page flex flex-1 overflow-hidden">{children}</main>
+        <main className="flex flex-1 overflow-hidden bg-canvas text-fg">{children}</main>
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} returnFocusRef={paletteReturnFocusRef} />
     </div>
