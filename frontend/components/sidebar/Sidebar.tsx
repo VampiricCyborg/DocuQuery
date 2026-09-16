@@ -15,6 +15,7 @@ import { NavLinks } from "./NavLinks"
 import type { Conversation } from "@/types"
 import toast from "react-hot-toast"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { getDefaultChatMode } from "@/stores/settings.store"
 import { useIsApplePlatform } from "@/lib/platform"
 
@@ -46,6 +47,7 @@ type OpenCommandPalette = (returnFocusTo?: HTMLElement | null) => void
 
 function useNewConversation() {
   const addConversation = useChatStore(s => s.addConversation)
+  const router = useRouter()
   return () => {
     const conv: Conversation = {
       id: generateId(),
@@ -57,6 +59,9 @@ function useNewConversation() {
       updatedAt: new Date().toISOString(),
     }
     addConversation(conv)
+    // Selecting a conversation only marks it active; open it as well, or the new chat
+    // stays invisible while the current page (dashboard, files…) remains on screen.
+    router.push(`/chat/${conv.id}`)
   }
 }
 
@@ -178,6 +183,7 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
   const handleNew = useNewConversation()
   const [search, setSearch] = useState("")
   const groupIdPrefix = useId()
+  const router = useRouter()
   const isApple = useIsApplePlatform()
 
   const filtered = useMemo(() => {
@@ -206,6 +212,7 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
   const select = (id: string) => {
     setActiveId(id)
     onNavigate?.()
+    router.push(`/chat/${id}`)
   }
 
   const handleDelete = (id: string) => {
