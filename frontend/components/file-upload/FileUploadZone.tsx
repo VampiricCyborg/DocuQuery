@@ -1,13 +1,17 @@
 "use client"
 import { useCallback } from "react"
 import { useDropzone } from "react-dropzone"
-import { motion, AnimatePresence } from "framer-motion"
-import { Upload, FileText, Image, File, X, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { AlertCircle, CheckCircle2, File, FileText, Image, Loader2, Upload, X } from "lucide-react"
 import { useFileStore } from "@/stores/file.store"
+import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
 import { cn, formatBytes } from "@/lib/utils"
+import { transition } from "@/lib/motion"
 import type { FileAttachment } from "@/types"
 
-const ACCEPTED = { "application/pdf": [".pdf"], "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"], "text/plain": [".txt"], "image/*": [".png", ".jpg", ".jpeg", ".webp"] }
+// Matches the backend's accepted upload types (ALLOWED_EXTENSIONS: pdf, docx, txt, md).
+const ACCEPTED = { "application/pdf": [".pdf"], "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"], "text/plain": [".txt"], "text/markdown": [".md"] }
 
 export function FileUploadZone() {
   const { addFile } = useFileStore()
@@ -16,33 +20,44 @@ export function FileUploadZone() {
     accepted.forEach(f => addFile(f))
   }, [addFile])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: ACCEPTED, multiple: true })
+  // "Browse files" is the keyboard entry point (noKeyboard keeps the zone itself out of the tab
+  // order); clicking anywhere on the zone still opens the file picker.
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({ onDrop, accept: ACCEPTED, multiple: true, noKeyboard: true })
 
   return (
     <div
       {...getRootProps()}
       className={cn(
-        "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-10 text-center transition-all cursor-pointer",
+        "flex cursor-pointer flex-col items-center justify-center rounded-card border border-dashed px-6 py-10 text-center transition-colors",
         isDragActive
-          ? "border-blue-500 bg-blue-500/5"
-          : "border-neutral-700 hover:border-neutral-500 hover:bg-white/[0.02]"
+          ? "border-accent bg-accent-subtle"
+          : "border-line-strong bg-surface hover:bg-surface-muted"
       )}
     >
       <input {...getInputProps()} />
-      <motion.div animate={{ scale: isDragActive ? 1.1 : 1 }} transition={{ type: "spring", stiffness: 300 }}>
-        <Upload className={cn("h-10 w-10 mb-3", isDragActive ? "text-blue-400" : "text-neutral-500")} />
-      </motion.div>
-      <p className="text-sm font-medium text-neutral-300">
+      <div className={cn(
+        "flex size-10 items-center justify-center rounded-full transition-colors",
+        isDragActive ? "bg-surface text-accent-strong" : "bg-surface-muted text-fg-muted"
+      )}>
+        <Upload className="size-5" aria-hidden="true" />
+      </div>
+      <p className="mt-3 font-medium text-fg">
         {isDragActive ? "Drop files here" : "Drag & drop files here"}
       </p>
-      <p className="mt-1 text-xs text-neutral-600">PDF, DOCX, TXT, PNG, JPG — up to 50MB each</p>
-      <button
+      <p className="mt-1 text-caption text-fg-subtle">PDF, DOCX, TXT, MD — up to 50MB each</p>
+      <Button
         type="button"
-        className="mt-4 rounded-lg border border-neutral-700 px-4 py-2 text-xs text-neutral-400 hover:border-neutral-500 hover:text-white transition-colors"
-        onClick={e => e.stopPropagation()}
+        variant="secondary"
+        size="sm"
+        className="mt-4"
+        onClick={event => {
+          // Stop the click reaching the zone, which would open the picker a second time.
+          event.stopPropagation()
+          open()
+        }}
       >
         Browse files
-      </button>
+      </Button>
     </div>
   )
 }
@@ -53,53 +68,100 @@ export function FileList({ highlightId }: { highlightId?: string | null } = {}) 
   if (files.length === 0) return null
 
   return (
-    <div className="mt-4 space-y-2">
-      <AnimatePresence>
-        {files.map(f => <FileCard key={f.id} file={f} highlighted={f.id === highlightId} onRemove={() => removeFile(f.id)} />)}
-      </AnimatePresence>
+    <div className="overflow-hidden rounded-card border border-line bg-surface">
+      <table className="w-full table-fixed border-collapse text-left">
+        <caption className="sr-only">Uploaded documents</caption>
+        <thead className="border-b border-line bg-canvas text-caption text-fg-subtle">
+          <tr>
+            <th scope="col" className="px-3 py-2 font-medium">Name</th>
+            <th scope="col" className="w-32 px-3 py-2 font-medium">Status</th>
+            <th scope="col" className="hidden w-24 px-3 py-2 text-right font-medium sm:table-cell">Size</th>
+            <th scope="col" className="hidden w-48 px-3 py-2 text-right font-medium md:table-cell">Uploaded</th>
+            <th scope="col" className="w-12 px-2 py-2"><span className="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <AnimatePresence initial={false}>
+            {files.map(f => (
+              <FileRow key={f.id} file={f} highlighted={f.id === highlightId} onRemove={() => removeFile(f.id)} />
+            ))}
+          </AnimatePresence>
+        </tbody>
+      </table>
     </div>
   )
 }
 
-function FileCard({ file, highlighted, onRemove }: { file: FileAttachment; highlighted?: boolean; onRemove: () => void }) {
+function FileRow({ file, highlighted, onRemove }: { file: FileAttachment; highlighted?: boolean; onRemove: () => void }) {
   const Icon = file.type === "pdf" ? FileText : file.type === "image" ? Image : File
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: 20 }}
+    <motion.tr
       id={`document-${file.id}`}
-      className={cn("flex items-center gap-3 rounded-xl border bg-neutral-900 p-3 transition-colors", highlighted ? "border-blue-500/70 ring-2 ring-blue-500/20" : "border-neutral-800")}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={transition.base}
+      className={cn(
+        "border-b border-line text-body transition-colors last:border-0",
+        highlighted ? "bg-accent-subtle" : "hover:bg-surface-muted"
+      )}
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-800">
-        <Icon className="h-4 w-4 text-neutral-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-medium text-white">{file.name}</p>
-        <p className="text-xs text-neutral-500">{formatBytes(file.size)}{file.uploadedAt ? ` · ${new Date(file.uploadedAt).toLocaleString()}` : ""}</p>
-        {(file.status === "uploading" || file.status === "processing") && (
-          <div className="mt-1.5 h-1 w-full rounded-full bg-neutral-800 overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-blue-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${file.progress ?? 65}%` }}
-              transition={{ duration: 0.3 }}
-            />
+      <td className="relative px-3 py-2">
+        {highlighted && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-accent" />}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <Icon className="size-4 shrink-0 text-fg-subtle" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="truncate font-medium text-fg">{file.name}</p>
+            {highlighted && <p className="text-caption text-accent-strong">Referenced in citation</p>}
+            <p className="text-caption text-fg-subtle sm:hidden">{formatBytes(file.size)}</p>
           </div>
-        )}
-      </div>
-      <div className="shrink-0">
-        {file.status === "ready" && <CheckCircle className="h-4 w-4 text-green-400" />}
-        {file.status === "error" && <AlertCircle className="h-4 w-4 text-red-400" />}
-        {file.status === "processing" && <Loader2 className="h-4 w-4 animate-spin text-blue-400" />}
-        {(file.status === "uploading" || file.status === "processing") && (
-          <span className="text-xs text-neutral-500">{file.progress}%</span>
-        )}
-      </div>
-      <button aria-label={`Delete ${file.name}`} onClick={onRemove} className="shrink-0 rounded-md p-1 text-neutral-600 hover:bg-neutral-800 hover:text-white transition-colors">
-        <X className="h-3.5 w-3.5" />
-      </button>
-    </motion.div>
+        </div>
+      </td>
+      <td className="px-3 py-2">
+        <FileStatus file={file} />
+      </td>
+      <td className="hidden px-3 py-2 text-right text-fg-muted tabular-nums sm:table-cell">{formatBytes(file.size)}</td>
+      <td className="hidden truncate px-3 py-2 text-right text-fg-muted tabular-nums md:table-cell">
+        {file.uploadedAt ? new Date(file.uploadedAt).toLocaleString() : "—"}
+      </td>
+      <td className="px-2 py-2 text-right">
+        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Delete ${file.name}`} onClick={onRemove}>
+          <X className="size-3.5" aria-hidden="true" />
+        </Button>
+      </td>
+    </motion.tr>
+  )
+}
+
+/** Status is always spelled out; progress only appears when the upload reports a real number. */
+export function FileStatus({ file }: { file: FileAttachment }) {
+  if (file.status === "ready") {
+    return <Badge variant="success"><CheckCircle2 className="size-3" aria-hidden="true" />Indexed</Badge>
+  }
+  if (file.status === "error") {
+    return <Badge variant="error"><AlertCircle className="size-3" aria-hidden="true" />Failed</Badge>
+  }
+  if (file.status === "processing") {
+    return <Badge variant="warning"><Loader2 className="size-3 animate-spin" aria-hidden="true" />Processing</Badge>
+  }
+
+  const progress = typeof file.progress === "number" ? file.progress : null
+  return (
+    <div className="space-y-1">
+      <Badge><Loader2 className="size-3 animate-spin" aria-hidden="true" />Uploading{progress !== null && ` ${progress}%`}</Badge>
+      {progress !== null && (
+        <div
+          role="progressbar"
+          aria-label={`Uploading ${file.name}`}
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="h-1 w-full overflow-hidden rounded-full bg-surface-muted"
+        >
+          <div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${progress}%` }} />
+        </div>
+      )}
+    </div>
   )
 }

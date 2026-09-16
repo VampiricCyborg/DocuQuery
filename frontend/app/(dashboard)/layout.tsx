@@ -1,54 +1,56 @@
 "use client"
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/stores/auth.store"
 import { Sidebar } from "@/components/sidebar/Sidebar"
 import { TopBar } from "@/components/layout/TopBar"
-import { useChatStore } from "@/stores/chat.store"
+import { CommandPalette } from "@/components/command/CommandPalette"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
-import { generateId } from "@/lib/utils"
-import type { Conversation } from "@/types"
-import { getDefaultChatMode } from "@/stores/settings.store"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isHydrated } = useAuthStore()
   const router = useRouter()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  // The drawer returns focus here when it closes (browsers don't reliably focus a clicked button).
+  const mobileNavTriggerRef = useRef<HTMLButtonElement>(null)
+  // Where focus goes when the palette closes: the button that opened it, or whatever had focus for the shortcut.
+  const paletteReturnFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) router.replace("/login")
   }, [isAuthenticated, isHydrated, router])
 
-  const { addConversation } = useChatStore()
+  const openPalette = (returnFocusTo?: HTMLElement | null) => {
+    paletteReturnFocusRef.current = returnFocusTo ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
+    setPaletteOpen(true)
+  }
 
+  // Ctrl+K or ⌘K toggles the quick-actions palette. Its first result is "New chat", so the shortcut
+  // then Enter reproduces the previous Ctrl+K behavior (create a conversation and open /chat).
   useKeyboardShortcuts([
     {
       key: "k",
-      ctrl: true,
-      action: () => {
-        const conv: Conversation = {
-          id: generateId(),
-          title: "New Chat",
-          messages: [],
-          mode: getDefaultChatMode(),
-          pinned: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-        addConversation(conv)
-        router.push("/chat")
-      },
+      mod: true,
+      action: () => (paletteOpen ? setPaletteOpen(false) : openPalette()),
     },
   ])
 
   if (!isHydrated || !isAuthenticated) return null
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-950 text-white">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar />
-        <main className="flex flex-1 overflow-hidden">{children}</main>
+    <div className="flex h-dvh overflow-hidden bg-canvas">
+      <Sidebar
+        mobileOpen={mobileNavOpen}
+        onMobileOpenChange={setMobileNavOpen}
+        returnFocusRef={mobileNavTriggerRef}
+        onOpenCommandPalette={openPalette}
+      />
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <TopBar mobileNavTriggerRef={mobileNavTriggerRef} onOpenMobileNav={() => setMobileNavOpen(true)} />
+        <main className="flex flex-1 overflow-hidden bg-canvas text-fg">{children}</main>
       </div>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} returnFocusRef={paletteReturnFocusRef} />
     </div>
   )
 }

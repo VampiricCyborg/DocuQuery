@@ -2,28 +2,26 @@
 import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { Copy, Check, RefreshCw, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react"
+import { AlertCircle, Check, Copy, FileSearch, RefreshCw, ThumbsDown, ThumbsUp } from "lucide-react"
 import type { Message } from "@/types"
-import { Avatar } from "@/components/ui/Avatar"
-import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { useCopy } from "@/hooks/useCopy"
 import { useChatStore } from "@/stores/chat.store"
-import { useAuthStore } from "@/stores/auth.store"
+import { useSettingsStore } from "@/stores/settings.store"
 import { formatTime, cn } from "@/lib/utils"
+import { transition } from "@/lib/motion"
 import { ToolCallDisplay } from "./ToolCallDisplay"
 import { CitationList } from "./CitationCard"
-import { useSettingsStore } from "@/stores/settings.store"
 
 export function MessageBubble({ message, isLast }: { message: Message; isLast: boolean }) {
   const { copy, copied } = useCopy()
   const retryLast = useChatStore(s => s.retryLast)
   const setFeedback = useChatStore(s => s.setFeedback)
   const activeId = useChatStore(s => s.activeId)
-  const user = useAuthStore(s => s.user)
-  const isUser = message.role === "user"
-  const hasCitations = !isUser && (message.citations?.length ?? 0) > 0
   const showCitations = useSettingsStore(s => s.showCitations)
+  const isUser = message.role === "user"
+  const streaming = message.status === "streaming"
+  const hasCitations = !isUser && (message.citations?.length ?? 0) > 0
 
   const handleFeedback = (fb: "up" | "down") => {
     if (!activeId) return
@@ -31,157 +29,138 @@ export function MessageBubble({ message, isLast }: { message: Message; isLast: b
     setFeedback(activeId, message.id, next)
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={cn(
-        "group flex gap-3 px-4 py-3 hover:bg-white/[0.015] transition-colors",
-        isUser && "flex-row-reverse"
-      )}
-    >
-      <Avatar
-        name={isUser ? user?.name : "AI"}
-        src={isUser ? user?.avatar : undefined}
-        size="sm"
-      />
+  if (isUser) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={transition.base}
+        className="group flex flex-col items-end gap-1"
+      >
+        <span className="sr-only">You said:</span>
+        <div className="max-w-5/6 rounded-card bg-surface-muted px-3.5 py-2.5 text-body-lg text-fg sm:max-w-3/4">
+          <div className="prose">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          </div>
+        </div>
+        <time
+          dateTime={message.timestamp}
+          className="text-micro text-fg-subtle opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          {formatTime(message.timestamp)}
+        </time>
+      </motion.div>
+    )
+  }
 
-      <div className={cn("flex max-w-[78%] flex-col gap-1", isUser && "items-end")}>
-        {/* Tool calls */}
+  return (
+    <motion.article
+      aria-label="DocuQuery response"
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={transition.base}
+      className="group flex gap-3"
+    >
+      <span aria-hidden="true" className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-control bg-fg text-canvas">
+        <FileSearch className="size-3.5" />
+      </span>
+
+      <div className="min-w-0 flex-1 space-y-3">
+        <div className="flex h-6 items-center gap-2">
+          <span className="font-medium">DocuQuery</span>
+          <time dateTime={message.timestamp} className="text-micro text-fg-subtle">{formatTime(message.timestamp)}</time>
+        </div>
+
         {message.toolCalls?.map(tc => (
           <ToolCallDisplay key={tc.id} toolCall={tc} />
         ))}
 
-        {/* Content bubble */}
-        <div
-          className={cn(
-            "rounded-2xl px-4 py-3 text-sm leading-relaxed",
-            isUser
-              ? "bg-blue-600 text-white rounded-tr-sm shadow-sm shadow-blue-900/30"
-              : "bg-neutral-800/70 text-neutral-100 rounded-tl-sm border border-neutral-700/30"
-          )}
-        >
-          {message.status === "streaming" && !message.content ? (
-            <TypingIndicator />
-          ) : (
-            <div className={cn("prose prose-sm max-w-none whitespace-pre-wrap", isUser ? "prose-invert" : "prose-invert")}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.content}
-              </ReactMarkdown>
+        {streaming && !message.content ? (
+          <TypingIndicator />
+        ) : (
+          <div className="max-w-reading text-body-lg text-fg">
+            <div className="prose">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
             </div>
-          )}
-          {/* Streaming cursor */}
-          {message.status === "streaming" && message.content && (
-            <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-neutral-300 rounded-full" />
-          )}
-        </div>
+            {streaming && (
+              <span aria-hidden="true" className="ml-0.5 inline-block h-4 w-0.5 animate-pulse rounded-full bg-fg-muted align-text-bottom" />
+            )}
+          </div>
+        )}
 
-        {/* Citations — rendered outside the bubble */}
+        {/* Sources are set apart from the generated text in their own bordered list */}
         {showCitations && hasCitations && message.status === "done" && (
-          <div className="w-full">
-            <CitationList citations={message.citations!} />
-          </div>
+          <CitationList citations={message.citations!} />
         )}
 
-        {/* Error state */}
         {message.status === "error" && (
-          <div className="flex items-center gap-1.5 text-xs text-red-400">
-            <AlertCircle className="h-3.5 w-3.5" />
+          <p role="alert" className="flex items-center gap-1.5 text-danger">
+            <AlertCircle className="size-4" aria-hidden="true" />
             Failed to generate a response
-          </div>
+          </p>
         )}
 
-        {/* Toolbar — timestamp + actions */}
-        <div
-          className={cn(
-            "flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
-            isUser && "flex-row-reverse"
-          )}
-        >
-          <span className="mr-1.5 text-[10px] text-neutral-600">
-            {formatTime(message.timestamp)}
-          </span>
-
-          {!isUser && message.status === "done" && (
-            <>
-              {/* Copy */}
-              <Tooltip content={copied ? "Copied!" : "Copy"}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-md"
-                  onClick={() => copy(message.content)}
-                >
-                  {copied
-                    ? <Check className="h-3 w-3 text-green-400" />
-                    : <Copy className="h-3 w-3 text-neutral-500 hover:text-white" />}
-                </Button>
-              </Tooltip>
-
-              {/* Thumbs up */}
-              <Tooltip content="Good response">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-6 w-6 rounded-md",
-                    message.feedback === "up" && "text-emerald-400"
-                  )}
-                  onClick={() => handleFeedback("up")}
-                >
-                  <ThumbsUp className={cn("h-3 w-3", message.feedback === "up" ? "text-emerald-400" : "text-neutral-500 hover:text-white")} />
-                </Button>
-              </Tooltip>
-
-              {/* Thumbs down */}
-              <Tooltip content="Bad response">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    "h-6 w-6 rounded-md",
-                    message.feedback === "down" && "text-red-400"
-                  )}
-                  onClick={() => handleFeedback("down")}
-                >
-                  <ThumbsDown className={cn("h-3 w-3", message.feedback === "down" ? "text-red-400" : "text-neutral-500 hover:text-white")} />
-                </Button>
-              </Tooltip>
-
-              {/* Retry (last message only) */}
-              {isLast && (
-                <Tooltip content="Regenerate">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 rounded-md"
-                    onClick={retryLast}
-                  >
-                    <RefreshCw className="h-3 w-3 text-neutral-500 hover:text-white" />
-                  </Button>
-                </Tooltip>
-              )}
-            </>
-          )}
-        </div>
+        {message.status === "done" && (
+          <div
+            className={cn(
+              "-ml-1.5 flex items-center gap-0.5 transition-opacity",
+              // The latest answer keeps its actions visible; older ones reveal them on hover or keyboard focus.
+              isLast
+                ? "opacity-100"
+                : "opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100"
+            )}
+          >
+            <ActionButton label={copied ? "Copied" : "Copy response"} onClick={() => copy(message.content)}>
+              {copied ? <Check className="text-success" aria-hidden="true" /> : <Copy aria-hidden="true" />}
+            </ActionButton>
+            <ActionButton label="Good response" pressed={message.feedback === "up"} onClick={() => handleFeedback("up")}>
+              <ThumbsUp className={cn(message.feedback === "up" && "text-success")} aria-hidden="true" />
+            </ActionButton>
+            <ActionButton label="Bad response" pressed={message.feedback === "down"} onClick={() => handleFeedback("down")}>
+              <ThumbsDown className={cn(message.feedback === "down" && "text-danger")} aria-hidden="true" />
+            </ActionButton>
+            {isLast && (
+              <ActionButton label="Regenerate" onClick={retryLast}>
+                <RefreshCw aria-hidden="true" />
+              </ActionButton>
+            )}
+          </div>
+        )}
       </div>
-    </motion.div>
+    </motion.article>
+  )
+}
+
+function ActionButton({ label, pressed, onClick, children }: {
+  label: string
+  pressed?: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <Tooltip content={label}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-pressed={pressed}
+        onClick={onClick}
+        className="flex size-7 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg focus-ring [&_svg]:size-3.5"
+      >
+        {children}
+      </button>
+    </Tooltip>
   )
 }
 
 function TypingIndicator() {
   return (
-    <div className="flex items-center gap-1 py-0.5">
-      <span className="text-xs text-neutral-400 mr-1">Thinking</span>
-      {[0, 0.15, 0.3].map((delay, i) => (
-        <motion.div
-          key={i}
-          className="h-1.5 w-1.5 rounded-full bg-neutral-400"
-          animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.1, 0.8] }}
-          transition={{ duration: 1.2, repeat: Infinity, delay }}
-        />
-      ))}
+    <div role="status" className="flex items-center gap-2 py-0.5 text-fg-subtle">
+      <span className="flex gap-1" aria-hidden="true">
+        <span className="size-1.5 animate-pulse rounded-full bg-fg-subtle" />
+        <span className="size-1.5 animate-pulse rounded-full bg-fg-subtle [animation-delay:150ms]" />
+        <span className="size-1.5 animate-pulse rounded-full bg-fg-subtle [animation-delay:300ms]" />
+      </span>
+      Thinking…
     </div>
   )
 }

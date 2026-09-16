@@ -77,7 +77,7 @@ Unlike generic chatbots, DocuQuery is purpose-built for document intelligence. I
 | 🔍 **Auto-Indexing** | Parse → clean → chunk → embed → store on upload | ✅ |
 | 🧮 **Vector Store** | pgvector HNSW index, 384-dim embeddings | ✅ |
 | 📊 **Processing Status** | `uploaded → processing → indexed → failed` lifecycle | ✅ |
-| 🤖 **RAG Chat** | Grounded answers from your documents, never hallucinated | ✅ |
+| 🤖 **RAG Chat** | Answers grounded in your documents, and says so when they don't cover a question | ✅ |
 | 🔴 **Streaming Responses** | Token-by-token SSE streaming with citations | ✅ |
 | 🧾 **Lossless Markdown Streaming** | Preserves token whitespace, paragraphs, lists, tables, code, and formatting | ✅ |
 | 🔌 **Multi-Provider LLM** | Groq, OpenAI, Anthropic, Gemini, Ollama — swap via config | ✅ |
@@ -308,7 +308,7 @@ RETRIEVAL_MAX_CONTEXT_CHUNKS=10
 
 # LLM
 LLM_PROVIDER=groq
-LLM_MODEL=llama-3.3-70b-versatile
+LLM_MODEL=qwen/qwen3.8-27b
 LLM_TEMPERATURE=0.1
 LLM_MAX_TOKENS=1024
 LLM_MAX_CONTEXT_TOKENS=3000
@@ -455,7 +455,7 @@ Response format:
   "citations": [
     { "filename": "Employee Handbook.pdf", "page": 14, "chunk_index": 18 }
   ],
-  "model": "llama-3.3-70b-versatile"
+  "model": "qwen/qwen3.8-27b"
 }
 ```
 

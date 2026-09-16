@@ -1,36 +1,20 @@
 "use client"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { ArrowRight, Check } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
 import { CHAT_MODE_META, type ChatMode } from "@/types"
-import { generateId } from "@/lib/utils"
+import { CHAT_MODE_ICONS } from "@/components/chat/modeIcons"
+import { generateId, cn } from "@/lib/utils"
+import { transition } from "@/lib/motion"
 import type { Conversation } from "@/types"
 
-const MODES: { mode: ChatMode; gradient: string; border: string; glow: string }[] = [
-  {
-    mode: "docuquery",
-    gradient: "from-emerald-600/20 to-emerald-900/10",
-    border: "border-emerald-700/40 hover:border-emerald-500/60",
-    glow: "shadow-emerald-900/20",
-  },
-  {
-    mode: "llm",
-    gradient: "from-blue-600/20 to-blue-900/10",
-    border: "border-blue-700/40 hover:border-blue-500/60",
-    glow: "shadow-blue-900/20",
-  },
-  {
-    mode: "hybrid",
-    gradient: "from-purple-600/20 to-purple-900/10",
-    border: "border-purple-700/40 hover:border-purple-500/60",
-    glow: "shadow-purple-900/20",
-  },
-]
+const MODES: ChatMode[] = ["docuquery", "llm", "hybrid"]
 
 const MODE_FEATURES: Record<ChatMode, string[]> = {
   docuquery: [
     "Answers grounded only in your documents",
-    "Never hallucinates — no outside knowledge",
+    "Tells you when your documents don't cover a question",
     "Cites exact sources with page numbers",
     "Best for specific document questions",
   ],
@@ -50,10 +34,11 @@ const MODE_FEATURES: Record<ChatMode, string[]> = {
 
 export default function ModeSelectPage() {
   const router = useRouter()
-  const { setMode, addConversation, activeMode } = useChatStore()
+  const { addConversation, activeMode } = useChatStore()
 
+  // addConversation also makes the new chat's mode the active mode. The page used to call setMode
+  // first, which rewrote the mode of whichever conversation was open before this one.
   const handleSelect = (mode: ChatMode) => {
-    setMode(mode)
     const conv: Conversation = {
       id: generateId(),
       title: "New Chat",
@@ -72,95 +57,77 @@ export default function ModeSelectPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 overflow-y-auto">
+    // No vertical centering on the scroll container: when the cards are taller than the screen,
+    // centered content overflows upward where it can't be scrolled to. m-auto centers only when it fits.
+    <div className="flex flex-1 overflow-y-auto bg-canvas px-4 py-8 text-body text-fg sm:px-6 sm:py-12">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-4xl"
+        transition={transition.slow}
+        className="@container m-auto w-full max-w-4xl"
       >
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-xl shadow-blue-500/30 text-3xl"
-          >
-            🧠
-          </motion.div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">
-            Welcome to DocuQuery
-          </h1>
-          <p className="mt-2 text-neutral-400">
-            How would you like to use AI today?
-          </p>
-        </div>
+        <header className="mb-8 text-center">
+          <h1 className="text-title-lg font-semibold">Welcome to DocuQuery</h1>
+          <p className="mt-1 text-body-lg text-fg-muted">How would you like to use AI today?</p>
+        </header>
 
-        {/* Mode cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {MODES.map(({ mode, gradient, border, glow }, i) => {
+        <ul className="mb-8 grid gap-3 @2xl:grid-cols-3">
+          {MODES.map(mode => {
             const meta = CHAT_MODE_META[mode]
-            const features = MODE_FEATURES[mode]
+            const ModeIcon = CHAT_MODE_ICONS[mode]
             const isActive = activeMode === mode
 
             return (
-              <motion.button
-                key={mode}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 + i * 0.08 }}
-                whileHover={{ y: -4, scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleSelect(mode)}
-                className={`relative flex flex-col items-start gap-4 rounded-2xl border bg-gradient-to-br ${gradient} ${border} p-6 text-left transition-all duration-200 shadow-xl ${glow} ${
-                  isActive ? "ring-2 ring-offset-1 ring-offset-neutral-950 ring-blue-500/50" : ""
-                }`}
-              >
-                {/* Icon + label */}
-                <div className="flex items-center gap-3 w-full">
-                  <span className="text-3xl">{meta.icon}</span>
-                  <div>
-                    <h3 className={`text-base font-semibold ${meta.color}`}>
-                      {meta.label}
-                    </h3>
-                    {isActive && (
-                      <span className="text-[10px] text-neutral-500 font-medium">
-                        Current mode
+              <li key={mode} className="flex">
+                <button
+                  type="button"
+                  onClick={() => handleSelect(mode)}
+                  aria-label={`Use ${meta.label}${isActive ? ", current mode" : ""}`}
+                  aria-describedby={`mode-${mode}-summary`}
+                  className={cn(
+                    "group flex w-full flex-col gap-4 rounded-card border bg-surface p-5 text-left transition-colors hover:bg-surface-muted focus-ring",
+                    isActive ? "border-line-strong" : "border-line"
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-control border border-line bg-canvas text-fg-muted">
+                      <ModeIcon className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-title-sm font-semibold">{meta.label}</span>
+                      {isActive && <span className="block text-caption text-fg-subtle">Current mode</span>}
+                    </span>
+                  </span>
+
+                  <span id={`mode-${mode}-summary`} className="text-fg-muted">
+                    {meta.description}
+                  </span>
+
+                  {/* Buttons may only contain phrasing content, so the feature list is built from spans */}
+                  <span className="block space-y-1.5">
+                    {MODE_FEATURES[mode].map(feature => (
+                      <span key={feature} className="flex items-start gap-2 text-caption text-fg-muted">
+                        <Check className="mt-0.5 size-3.5 shrink-0 text-fg-subtle" aria-hidden="true" />
+                        {feature}
                       </span>
-                    )}
-                  </div>
-                </div>
+                    ))}
+                  </span>
 
-                {/* Description */}
-                <p className="text-sm text-neutral-400 leading-relaxed">
-                  {meta.description}
-                </p>
-
-                {/* Features */}
-                <ul className="space-y-1.5 w-full">
-                  {features.map(f => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-neutral-500">
-                      <span className="mt-0.5 text-neutral-600">•</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA */}
-                <div className={`mt-auto w-full rounded-xl py-2.5 text-center text-sm font-semibold transition-colors ${meta.color} bg-white/5 hover:bg-white/10`}>
-                  Use {meta.label}
-                </div>
-              </motion.button>
+                  <span className="mt-auto flex items-center justify-between border-t border-line pt-3 font-medium">
+                    Use {meta.label}
+                    <ArrowRight className="size-4 text-fg-subtle transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                  </span>
+                </button>
+              </li>
             )
           })}
-        </div>
+        </ul>
 
-        {/* Skip link */}
         <div className="text-center">
           <button
+            type="button"
             onClick={handleContinue}
-            className="text-sm text-neutral-500 hover:text-neutral-300 transition-colors underline underline-offset-4"
+            className="rounded-control text-fg-muted underline underline-offset-4 transition-colors hover:text-fg focus-ring"
           >
             Continue with current mode ({CHAT_MODE_META[activeMode].label})
           </button>

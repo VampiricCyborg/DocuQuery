@@ -2,412 +2,354 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 import {
-  FileText, MessageSquare, BookOpen, Zap, ArrowRight,
-  Upload, Search, Sparkles, ExternalLink, Shield, Check
+  ArrowRight, ArrowUp, BookOpen, Check, ExternalLink, FileText, Files,
+  LayoutDashboard, MessageSquare, Search, Shield, Sparkles, Upload, Zap,
 } from "lucide-react"
 import { useAuthStore } from "@/stores/auth.store"
+import { Button } from "@/components/ui/Button"
+import { Logo } from "@/components/brand/Logo"
+import { transition } from "@/lib/motion"
+import { cn } from "@/lib/utils"
 
-// ─── Hero Product Preview ─────────────────────────────────────────────────────
+// ─── Content ──────────────────────────────────────────────────────────────────
 
-function ProductPreview() {
-  return (
-    <div className="relative w-full max-w-lg">
-      {/* Glow */}
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-600/20 via-purple-600/10 to-transparent blur-3xl" />
-
-      {/* Main chat card */}
-      <div className="relative rounded-2xl border border-neutral-700/60 bg-neutral-900/80 shadow-2xl shadow-blue-900/20 backdrop-blur-sm overflow-hidden">
-        {/* Window chrome */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-800">
-          <div className="flex gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-red-500/70" />
-            <div className="h-3 w-3 rounded-full bg-yellow-500/70" />
-            <div className="h-3 w-3 rounded-full bg-green-500/70" />
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="rounded-full border border-neutral-700 bg-neutral-800 px-3 py-0.5 text-[11px] text-neutral-400">
-              DocuQuery — AI Document Chat
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 space-y-3">
-          {/* User message */}
-          <div className="flex justify-end">
-            <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-blue-600 px-4 py-2.5 text-sm text-white">
-              What are the key findings in the Q3 report?
-            </div>
-          </div>
-
-          {/* AI message */}
-          <div className="flex gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-xs">
-              ✦
-            </div>
-            <div className="max-w-[85%] space-y-2">
-              <div className="rounded-2xl rounded-tl-sm border border-neutral-700/40 bg-neutral-800/70 px-4 py-2.5 text-sm text-neutral-200 leading-relaxed">
-                Based on the Q3 report, the key findings include:
-                <ul className="mt-2 space-y-1 text-xs text-neutral-300">
-                  <li className="flex items-start gap-1.5"><span className="text-blue-400 mt-0.5">•</span> Revenue grew 23% YoY to $4.2M</li>
-                  <li className="flex items-start gap-1.5"><span className="text-blue-400 mt-0.5">•</span> Customer acquisition cost decreased by 18%</li>
-                  <li className="flex items-start gap-1.5"><span className="text-blue-400 mt-0.5">•</span> Net Promoter Score improved to 72</li>
-                </ul>
-              </div>
-
-              {/* Citation card */}
-              <div className="rounded-xl border border-neutral-700/50 bg-neutral-800/40 overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/15">
-                    <FileText className="h-3 w-3 text-blue-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-neutral-200">Q3_Report_2024.pdf</p>
-                    <p className="text-[10px] text-neutral-500">Page 7 · Chunks 12 · 14</p>
-                  </div>
-                  <div className="text-[10px] text-neutral-500 font-medium">Sources</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Files indicator */}
-          <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-800/40 px-3 py-2">
-            <div className="flex -space-x-1">
-              {["pdf", "docx", "txt"].map(t => (
-                <div key={t} className="flex h-6 w-6 items-center justify-center rounded-full border border-neutral-700 bg-neutral-800 text-[9px] font-bold text-neutral-400 uppercase">
-                  {t}
-                </div>
-              ))}
-            </div>
-            <span className="text-xs text-neutral-400">3 documents indexed</span>
-            <div className="ml-auto flex items-center gap-1 text-[10px] text-emerald-400">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating stats */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.6 }}
-        className="absolute -left-10 top-24 rounded-xl border border-neutral-700/50 bg-neutral-900/90 px-3 py-2 shadow-xl backdrop-blur-sm"
-      >
-        <p className="text-[10px] text-neutral-500">Response time</p>
-        <p className="text-sm font-bold text-white">~0.8s</p>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.7 }}
-        className="absolute -right-6 bottom-24 rounded-xl border border-neutral-700/50 bg-neutral-900/90 px-3 py-2 shadow-xl backdrop-blur-sm"
-      >
-        <p className="text-[10px] text-neutral-500">Accuracy</p>
-        <p className="text-sm font-bold text-emerald-400">Grounded ✓</p>
-      </motion.div>
-    </div>
-  )
-}
-
-// ─── Features Section ─────────────────────────────────────────────────────────
+const TRUST_SIGNALS = [
+  { icon: Shield, text: "Private & secure" },
+  { icon: Zap, text: "Real-time streaming" },
+  { icon: Check, text: "Grounded answers" },
+]
 
 const FEATURES = [
   {
     icon: MessageSquare,
     title: "AI Document Chat",
     description: "Ask questions about your uploaded documents. Receive grounded answers with citations linking back to the exact source page and chunk.",
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-    border: "border-blue-500/20",
   },
   {
     icon: BookOpen,
     title: "Persistent Conversations",
     description: "Every conversation is automatically saved with full history. Continue exactly where you left off — across sessions, across devices.",
-    color: "text-purple-400",
-    bg: "bg-purple-500/10",
-    border: "border-purple-500/20",
   },
   {
     icon: Zap,
     title: "Hybrid AI",
     description: "Combine vector retrieval from your documents with powerful LLM reasoning. Get the best of both worlds in every response.",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
   },
 ]
 
-// ─── Workflow Section ─────────────────────────────────────────────────────────
-
 const WORKFLOW = [
-  { icon: Upload, label: "Upload", desc: "PDF, DOCX, TXT, MD", color: "from-blue-600 to-blue-700" },
-  { icon: Zap, label: "Index", desc: "Auto-embed & store", color: "from-purple-600 to-purple-700" },
-  { icon: Search, label: "Ask", desc: "Natural language query", color: "from-violet-600 to-violet-700" },
-  { icon: Sparkles, label: "Answer", desc: "Grounded + cited", color: "from-emerald-600 to-emerald-700" },
+  { icon: Upload, label: "Upload", desc: "PDF, DOCX, TXT, MD" },
+  { icon: Zap, label: "Index", desc: "Auto-embed & store" },
+  { icon: Search, label: "Ask", desc: "Natural language query" },
+  { icon: Sparkles, label: "Answer", desc: "Grounded + cited" },
 ]
+
+const FOOTER_LINKS = [
+  { href: "https://github.com", label: "GitHub", external: true },
+]
+
+/** Fade-and-rise once as a section scrolls into view. */
+const reveal = {
+  initial: { opacity: 0, y: 8 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: transition.slow,
+} as const
+
+// ─── Product preview (static illustration of the chat UI) ─────────────────────
+
+const PREVIEW_NAV = [
+  { icon: LayoutDashboard, label: "Dashboard" },
+  { icon: MessageSquare, label: "Chat", active: true },
+  { icon: Files, label: "Files" },
+]
+
+const PREVIEW_DOCUMENTS = ["Q3_Report_2024.pdf", "Board_Minutes.docx", "Pricing_Notes.txt"]
+
+const PREVIEW_FINDINGS = [
+  "Revenue grew 23% YoY to $4.2M",
+  "Customer acquisition cost decreased by 18%",
+  "Net Promoter Score improved to 72",
+]
+
+function ProductPreview() {
+  return (
+    <figure className="overflow-hidden rounded-card border border-line bg-surface">
+      <figcaption className="sr-only">
+        Preview of DocuQuery: a question about a Q3 report answered from an uploaded document, with the cited source listed.
+      </figcaption>
+
+      {/* Browser chrome */}
+      <div aria-hidden="true" className="flex items-center gap-3 border-b border-line bg-surface-muted px-3 py-2">
+        <div className="flex gap-1.5">
+          <span className="size-2.5 rounded-full bg-line-strong" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
+        </div>
+        <div className="mx-auto w-full max-w-xs truncate rounded-control border border-line bg-surface px-3 py-0.5 text-center text-micro text-fg-subtle">
+          docuquery.ai/chat
+        </div>
+        <div className="w-10" />
+      </div>
+
+      <div aria-hidden="true" className="flex text-left">
+        {/* Sidebar */}
+        <div className="hidden w-52 shrink-0 flex-col gap-5 border-r border-line bg-canvas p-3 md:flex">
+          <div className="space-y-0.5">
+            {PREVIEW_NAV.map(({ icon: Icon, label, active }) => (
+              <div
+                key={label}
+                className={cn(
+                  "flex items-center gap-2 rounded-control px-2 py-1.5 text-caption",
+                  active ? "bg-surface-muted font-medium text-fg" : "text-fg-muted"
+                )}
+              >
+                <Icon className="size-3.5" />
+                {label}
+              </div>
+            ))}
+          </div>
+          <div>
+            <p className="px-2 pb-1 text-micro font-medium text-fg-subtle">Documents</p>
+            {PREVIEW_DOCUMENTS.map(name => (
+              <div key={name} className="flex items-center gap-2 px-2 py-1 text-caption text-fg-muted">
+                <FileText className="size-3.5 shrink-0 text-fg-subtle" />
+                <span className="truncate">{name}</span>
+                <span className="ml-auto size-1.5 shrink-0 rounded-full bg-success" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Conversation */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+            <p className="truncate font-medium">Q3 report findings</p>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-control border border-line px-2 py-0.5 text-micro text-fg-muted">
+              <Zap className="size-3" />
+              DocuQuery mode
+            </span>
+          </div>
+
+          <div className="space-y-5 p-4 sm:p-6">
+            <div className="flex justify-end">
+              <p className="max-w-sm rounded-card bg-surface-muted px-3 py-2">What are the key findings in the Q3 report?</p>
+            </div>
+
+            <div className="max-w-xl space-y-3">
+              <p className="text-body-lg">Based on the Q3 report, the key findings include:</p>
+              <ul className="space-y-1.5 text-body-lg">
+                {PREVIEW_FINDINGS.map(finding => (
+                  <li key={finding} className="flex gap-2.5">
+                    <span className="mt-2.5 size-1 shrink-0 rounded-full bg-fg-subtle" />
+                    {finding}
+                  </li>
+                ))}
+              </ul>
+              <div className="rounded-card border border-line bg-canvas">
+                <p className="border-b border-line px-3 py-1.5 text-micro font-medium uppercase tracking-wide text-fg-subtle">Sources</p>
+                <div className="flex items-center gap-2.5 px-3 py-2">
+                  <FileText className="size-4 shrink-0 text-fg-subtle" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-caption font-medium">Q3_Report_2024.pdf</p>
+                    <p className="text-micro text-fg-subtle">Page 7 · Chunks 12, 14</p>
+                  </div>
+                  <span className="rounded-full bg-accent-subtle px-2 py-0.5 text-micro font-medium text-accent-strong">Cited</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-auto border-t border-line p-3">
+            <div className="flex items-center gap-2 rounded-control border border-line-strong bg-surface py-1.5 pr-1.5 pl-3 text-fg-subtle">
+              Ask about your documents…
+              <span className="ml-auto flex size-6 items-center justify-center rounded-control bg-accent text-on-accent">
+                <ArrowUp className="size-3.5" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+  )
+}
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   const { user, isHydrated } = useAuthStore()
   const authenticated = isHydrated && !!user
+  const primaryHref = authenticated ? "/chat" : "/signup"
+
   return (
-    <main className="min-h-screen bg-neutral-950 text-white overflow-x-hidden">
-
+    <div className="min-h-dvh bg-canvas text-body text-fg">
       {/* ── Nav ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800/50 bg-neutral-950/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" aria-label="DocuQuery home" className="flex items-center gap-2.5 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-lg shadow-blue-900/30">
-              <span className="text-sm font-bold">✦</span>
-            </div>
-            <span className="text-sm font-bold tracking-tight">DocuQuery</span>
+      <header className="sticky top-0 z-50 border-b border-line bg-canvas/80 backdrop-blur">
+        <nav aria-label="Primary" className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+          <Link href="/" aria-label="DocuQuery home" className="rounded-control focus-ring">
+            <Logo />
           </Link>
-          <div className="flex items-center gap-3">
-            {!authenticated && <Link href="/login" className="rounded-lg px-4 py-2 text-sm text-neutral-400 hover:text-white transition-colors">Login</Link>}
-            <Link
-              href={authenticated ? "/chat" : "/signup"}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-900/30"
-            >
-              {authenticated ? "Continue Chat" : "Get Started"}
-            </Link>
+          <div className="flex items-center gap-2">
+            {!authenticated && (
+              <Button asChild variant="ghost">
+                <Link href="/login">Sign in</Link>
+              </Button>
+            )}
+            <Button asChild>
+              <Link href={primaryHref}>{authenticated ? "Continue chat" : "Get started"}</Link>
+            </Button>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </header>
 
-      {/* ── Hero ── */}
-      <section className="relative pt-32 pb-20 px-6" aria-label="Hero">
-        {/* Background gradient */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[600px] rounded-full bg-blue-600/10 blur-[120px]" />
-          <div className="absolute -top-20 right-0 h-[400px] w-[400px] rounded-full bg-purple-600/10 blur-[100px]" />
-        </div>
-
-        <div className="relative mx-auto max-w-6xl">
-          <div className="flex flex-col-reverse lg:flex-row items-center gap-12 lg:gap-20">
-
-            {/* Left: text */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex flex-col gap-6 lg:max-w-xl"
-            >
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 self-start rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-                <span className="text-xs font-medium text-blue-300">RAG-Powered Document Intelligence</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
-                Understand your{" "}
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  documents
-                </span>{" "}
-                with AI.
-              </h1>
-
-              <p className="text-lg text-neutral-400 leading-relaxed">
-                Upload PDFs, DOCX, TXT and more. Ask questions naturally.
-                Receive grounded answers with citations — powered by
-                Retrieval Augmented Generation.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <Link
-                  href={authenticated ? "/chat" : "/signup"}
-                  className="group inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500 transition-all hover:shadow-blue-800/40 hover:shadow-xl"
-                >
-                  {authenticated ? "Open DocuQuery" : "Get Started Free"}
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-                {!authenticated && <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 rounded-xl border border-neutral-700 px-6 py-3 text-sm font-medium text-neutral-300 hover:border-neutral-500 hover:text-white transition-all"
-                >
-                  Sign In
-                </Link>}
-              </div>
-
-              {/* Trust signals */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                {[
-                  { icon: Shield, text: "Private & Secure" },
-                  { icon: Zap, text: "Real-time Streaming" },
-                  { icon: Check, text: "Grounded Answers" },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-1.5 text-xs text-neutral-500">
-                    <Icon className="h-3.5 w-3.5 text-neutral-600" />
-                    {text}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Right: product preview */}
-            <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.15 }}
-              className="w-full max-w-md lg:max-w-none lg:flex-1 flex justify-center"
-            >
-              <ProductPreview />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="py-20 px-6 border-t border-neutral-800/50" aria-label="Features">
-        <div className="mx-auto max-w-5xl">
+      <main>
+        {/* ── Hero ── */}
+        <section aria-labelledby="hero-heading" className="px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 text-center"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={transition.slow}
+            className="mx-auto flex max-w-3xl flex-col items-center text-center"
           >
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">
-              Everything you need for document intelligence
-            </h2>
-            <p className="mt-3 text-neutral-400">
-              Built for teams and individuals who need to query, analyze, and interact with private document fleets.
+            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-caption font-medium text-fg-muted">
+              <Sparkles className="size-3.5 text-fg-subtle" aria-hidden="true" />
+              RAG-powered document intelligence
             </p>
-          </motion.div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, description, color, bg, border }, i) => (
-              <motion.div
-                key={title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className={`rounded-2xl border ${border} bg-neutral-900/60 p-6 hover:bg-neutral-900 transition-colors`}
-              >
-                <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>
-                  <Icon className={`h-5 w-5 ${color}`} />
-                </div>
-                <h3 className="mb-2 text-base font-semibold text-white">{title}</h3>
-                <p className="text-sm text-neutral-400 leading-relaxed">{description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+            <h1 id="hero-heading" className="mt-6 text-display-sm font-semibold sm:text-display">
+              Understand your documents with AI.
+            </h1>
 
-      {/* ── Workflow ── */}
-      <section className="py-20 px-6 bg-neutral-900/30" aria-label="How it works">
-        <div className="mx-auto max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 text-center"
-          >
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">How it works</h2>
-            <p className="mt-3 text-neutral-400">From upload to answer in seconds</p>
-          </motion.div>
+            <p className="mt-5 max-w-xl text-title-sm font-normal text-fg-muted">
+              Upload PDFs, DOCX, TXT and more. Ask questions naturally. Receive grounded answers
+              with citations — powered by Retrieval Augmented Generation.
+            </p>
 
-          <div className="relative flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
-            {WORKFLOW.map(({ icon: Icon, label, desc, color }, i) => (
-              <div key={label} className="flex flex-col sm:flex-row items-center flex-1">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="flex flex-col items-center gap-3 text-center"
-                >
-                  <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${color} shadow-lg`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{label}</p>
-                    <p className="text-xs text-neutral-500">{desc}</p>
-                  </div>
-                </motion.div>
-                {i < WORKFLOW.length - 1 && (
-                  <div className="hidden sm:flex flex-1 items-center justify-center">
-                    <ArrowRight className="h-4 w-4 text-neutral-600" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA Banner ── */}
-      <section className="py-20 px-6" aria-label="Call to action">
-        <div className="mx-auto max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="relative overflow-hidden rounded-3xl border border-neutral-700/50 bg-gradient-to-br from-blue-900/20 via-neutral-900 to-purple-900/20 p-10 text-center"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-purple-600/5" />
-            <div className="relative">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 shadow-xl shadow-blue-900/30">
-                <Sparkles className="h-7 w-7 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-3">
-                Ready to query your documents with AI?
-              </h2>
-              <p className="text-neutral-400 mb-8 max-w-md mx-auto">
-                Upload your first document and get grounded, cited answers in seconds.
-              </p>
-              <Link
-                  href={authenticated ? "/chat" : "/signup"}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500 transition-all"
-              >
-                {authenticated ? "Open DocuQuery" : "Get Started Free"}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+            <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <Button asChild size="lg">
+                <Link href={primaryHref}>
+                  {authenticated ? "Open DocuQuery" : "Get started free"}
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+              {!authenticated && (
+                <Button asChild size="lg" variant="secondary">
+                  <Link href="/login">Sign in</Link>
+                </Button>
+              )}
             </div>
+
+            <ul className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2 text-caption text-fg-muted">
+              {TRUST_SIGNALS.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-1.5">
+                  <Icon className="size-3.5 text-fg-subtle" aria-hidden="true" />
+                  {text}
+                </li>
+              ))}
+            </ul>
           </motion.div>
-        </div>
-      </section>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...transition.slow, delay: 0.06 }}
+            className="mx-auto mt-14 max-w-5xl sm:mt-16"
+          >
+            <ProductPreview />
+          </motion.div>
+        </section>
+
+        {/* ── Features ── */}
+        <section aria-labelledby="features-heading" className="border-t border-line px-4 py-20 sm:px-6 sm:py-28">
+          <div className="mx-auto max-w-6xl">
+            <motion.h2 {...reveal} id="features-heading" className="max-w-3xl text-title-lg font-semibold sm:text-display-sm">
+              Everything you need for document intelligence.{" "}
+              <span className="text-fg-muted">
+                Built for teams and individuals who need to query, analyze, and interact with private document fleets.
+              </span>
+            </motion.h2>
+
+            <div className="mt-12 grid border-t border-line sm:grid-cols-3">
+              {FEATURES.map(({ icon: Icon, title, description }) => (
+                <motion.div
+                  key={title}
+                  {...reveal}
+                  className="border-b border-line py-8 last:border-b-0 sm:border-b-0 sm:border-l sm:px-8 sm:first:border-l-0 sm:first:pl-0 sm:last:pr-0"
+                >
+                  <Icon className="size-5 text-fg-muted" aria-hidden="true" />
+                  <h3 className="mt-4 text-title-sm font-semibold">{title}</h3>
+                  <p className="mt-2 text-body-lg text-fg-muted">{description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── How it works ── */}
+        <section aria-labelledby="workflow-heading" className="border-t border-line bg-surface px-4 py-20 sm:px-6 sm:py-28">
+          <div className="mx-auto max-w-6xl">
+            <motion.h2 {...reveal} id="workflow-heading" className="max-w-3xl text-title-lg font-semibold sm:text-display-sm">
+              How it works. <span className="text-fg-muted">From upload to answer in seconds.</span>
+            </motion.h2>
+
+            <motion.ol {...reveal} className="mt-12 grid gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+              {WORKFLOW.map(({ icon: Icon, label, desc }, i) => (
+                <li key={label} className="bg-canvas p-6">
+                  <div className="flex items-center justify-between">
+                    <Icon className="size-5 text-fg-muted" aria-hidden="true" />
+                    <span className="font-mono text-caption text-fg-subtle">0{i + 1}</span>
+                  </div>
+                  <p className="mt-8 text-title-sm font-semibold">{label}</p>
+                  <p className="mt-1 text-fg-muted">{desc}</p>
+                </li>
+              ))}
+            </motion.ol>
+          </div>
+        </section>
+
+        {/* ── Call to action ── */}
+        <section aria-labelledby="cta-heading" className="border-t border-line px-4 py-20 sm:px-6 sm:py-28">
+          <motion.div {...reveal} className="mx-auto flex max-w-2xl flex-col items-center text-center">
+            <h2 id="cta-heading" className="text-title-lg font-semibold sm:text-display-sm">
+              Ready to query your documents with AI?
+            </h2>
+            <p className="mt-4 text-title-sm font-normal text-fg-muted">
+              Upload your first document and get grounded, cited answers in seconds.
+            </p>
+            <Button asChild size="lg" className="mt-8">
+              <Link href={primaryHref}>
+                {authenticated ? "Open DocuQuery" : "Get started free"}
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </motion.div>
+        </section>
+      </main>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-neutral-800 py-10 px-6" role="contentinfo">
-        <div className="mx-auto max-w-5xl">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-                <span className="text-xs font-bold">✦</span>
-              </div>
-              <span className="text-sm font-semibold text-neutral-300">DocuQuery</span>
-              <span className="text-neutral-700 text-xs">·</span>
-              <span className="text-xs text-neutral-600">Enterprise RAG Platform</span>
-            </div>
-            <nav className="flex items-center gap-6" aria-label="Footer navigation">
-              {[
-                { href: "https://github.com", label: "GitHub", icon: ExternalLink },
-                { href: "#", label: "Documentation" },
-                { href: "#", label: "Privacy" },
-                { href: "#", label: "About" },
-              ].map(({ href, label, icon: Icon }) => (
-                <Link
-                  key={label}
-                  href={href}
-                  className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors"
-                >
-                  {Icon && <Icon className="h-3.5 w-3.5" />}
-                  {label}
-                </Link>
-              ))}
-            </nav>
+      <footer className="border-t border-line px-4 py-10 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <Logo />
+            <span className="text-caption text-fg-subtle">Enterprise RAG Platform</span>
           </div>
-          <div className="mt-6 pt-6 border-t border-neutral-800/50 text-center text-xs text-neutral-700">
-            © {new Date().getFullYear()} DocuQuery. Built with Next.js, FastAPI, pgvector, and Groq.
-          </div>
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-6 gap-y-2">
+            {FOOTER_LINKS.map(({ href, label, external }) => (
+              <Link
+                key={label}
+                href={href}
+                className="inline-flex items-center gap-1 rounded-control text-caption text-fg-muted transition-colors hover:text-fg focus-ring"
+              >
+                {label}
+                {external && <ExternalLink className="size-3" aria-hidden="true" />}
+              </Link>
+            ))}
+          </nav>
         </div>
+        <p className="mx-auto mt-8 max-w-6xl border-t border-line pt-6 text-caption text-fg-subtle">
+          © {new Date().getFullYear()} DocuQuery. Built with Next.js, FastAPI, pgvector, and Groq.
+        </p>
       </footer>
-    </main>
+    </div>
   )
 }

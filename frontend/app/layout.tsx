@@ -1,6 +1,10 @@
 import type { Metadata } from "next"
+import { Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/layout/Providers"
+
+// The opsz axis switches Inter to its display cut automatically at headline sizes.
+const inter = Inter({ subsets: ["latin"], axes: ["opsz"], variable: "--font-inter", display: "swap" })
 
 export const metadata: Metadata = {
   title: { default: "DocuQuery — Understand your documents with AI", template: "%s | DocuQuery" },
@@ -25,7 +29,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    // data-scroll-behavior lets Next.js turn off the global smooth scrolling during route transitions
+    <html lang="en" className={inter.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <Providers>{children}</Providers>
       </body>

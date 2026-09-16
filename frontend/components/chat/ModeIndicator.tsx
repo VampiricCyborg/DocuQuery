@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { ChevronDown, Check } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
 import { CHAT_MODE_META, type ChatMode } from "@/types"
+import { CHAT_MODE_ICONS } from "./modeIcons"
 import { cn } from "@/lib/utils"
 
 const MODES: ChatMode[] = ["docuquery", "llm", "hybrid"]
@@ -19,6 +20,7 @@ export function ModeIndicator() {
   const menuRef = useRef<HTMLDivElement>(null)
   const activeIndex = MODES.indexOf(activeMode)
   const meta = CHAT_MODE_META[activeMode]
+  const ActiveIcon = CHAT_MODE_ICONS[activeMode]
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMounted(true))
@@ -58,20 +60,59 @@ export function ModeIndicator() {
   }, [open, activeIndex, setMode])
 
   const menu = open && mounted ? createPortal(
-    <div ref={menuRef} role="menu" aria-label="Chat mode" style={{ position: "fixed", left: position.left, top: position.top, width: MENU_WIDTH, zIndex: 100 }} className="rounded-xl border border-neutral-700/60 bg-neutral-900 p-1 shadow-xl shadow-black/50">
+    <div
+      ref={menuRef}
+      role="menu"
+      aria-label="Chat mode"
+      style={{ position: "fixed", left: position.left, top: position.top, width: MENU_WIDTH, zIndex: 100 }}
+      className="animate-fade-in rounded-card bg-surface-raised p-1 text-body text-fg shadow-overlay"
+    >
       {MODES.map(mode => {
         const m = CHAT_MODE_META[mode]
+        const ModeIcon = CHAT_MODE_ICONS[mode]
         const selected = mode === activeMode
-        return <button key={mode} role="menuitemradio" aria-checked={selected} onClick={() => { setMode(mode); setOpen(false); triggerRef.current?.focus() }} className={cn("flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left outline-none focus:ring-2 focus:ring-blue-500", selected ? "bg-neutral-800 text-white" : "text-neutral-400 hover:bg-neutral-800/60 hover:text-white")}>
-          <span className="mt-0.5 text-base">{m.icon}</span><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className={cn("text-xs font-semibold", m.color)}>{m.label}</span>{selected && <Check className="h-3 w-3 shrink-0 text-emerald-400" />}</span><span className="mt-0.5 block text-[11px] leading-relaxed text-neutral-500">{m.description}</span></span>
-        </button>
+        return (
+          <button
+            key={mode}
+            type="button"
+            role="menuitemradio"
+            aria-checked={selected}
+            onClick={() => { setMode(mode); setOpen(false); triggerRef.current?.focus() }}
+            className={cn(
+              "flex w-full items-start gap-2.5 rounded-control px-2 py-2 text-left transition-colors focus-ring-inset",
+              selected ? "bg-surface-muted" : "hover:bg-surface-muted"
+            )}
+          >
+            <ModeIcon className="mt-0.5 size-4 shrink-0 text-fg-muted" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center justify-between gap-2">
+                <span className="font-medium">{m.label}</span>
+                {selected && <Check className="size-3.5 shrink-0 text-accent-strong" aria-hidden="true" />}
+              </span>
+              <span className="mt-0.5 block text-caption text-fg-muted">{m.description}</span>
+            </span>
+          </button>
+        )
       })}
     </div>, document.body
   ) : null
 
   return <>
-    <button ref={triggerRef} aria-haspopup="menu" aria-expanded={open} aria-label={`Chat mode: ${meta.label}`} onClick={() => setOpen(value => !value)} className={cn("flex items-center gap-1.5 rounded-lg border border-neutral-700/60 bg-neutral-800/60 px-2.5 py-1.5 text-xs font-medium transition-all hover:border-neutral-600 hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500", open && "border-neutral-600 bg-neutral-800")}>
-      <span>{meta.icon}</span><span className={meta.color}>{meta.label}</span><ChevronDown className={cn("h-3 w-3 text-neutral-500 transition-transform", open && "rotate-180")} />
+    <button
+      ref={triggerRef}
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label={`Chat mode: ${meta.label}`}
+      onClick={() => setOpen(value => !value)}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 rounded-control border border-line bg-surface px-2 py-1 text-caption font-medium text-fg transition-colors hover:bg-surface-muted focus-ring",
+        open && "bg-surface-muted"
+      )}
+    >
+      <ActiveIcon className="size-3.5 text-fg-muted" aria-hidden="true" />
+      {meta.label}
+      <ChevronDown className={cn("size-3 text-fg-subtle transition-transform", open && "rotate-180")} aria-hidden="true" />
     </button>
     {menu}
   </>

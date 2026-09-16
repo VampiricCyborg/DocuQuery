@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # LLM
     llm_provider: str = "groq"
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_model: str = "qwen/qwen3.8-27b"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 1024
     llm_max_context_tokens: int = 3000

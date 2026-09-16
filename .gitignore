@@ -16,3 +16,6 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Playwright MCP snapshots, screenshots and console logs
+.playwright-mcp/

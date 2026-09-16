@@ -1,7 +1,7 @@
 "use client"
 import { useState, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Send, Paperclip, Mic, MicOff, X, StopCircle } from "lucide-react"
+import { ArrowUp, Loader2, Mic, MicOff, Paperclip, X } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
 import { useFileStore } from "@/stores/file.store"
 import { useVoice } from "@/hooks/useVoice"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { ModeIndicator } from "./ModeIndicator"
 import { cn, formatBytes, generateId } from "@/lib/utils"
+import { transition } from "@/lib/motion"
 import { CHAT_MODE_META } from "@/types"
 import type { Conversation } from "@/types"
 import { getDefaultChatMode } from "@/stores/settings.store"
@@ -32,6 +33,7 @@ export function ChatInput() {
     setText(t => t + (t ? " " : "") + transcript)
     textareaRef.current?.focus()
   })
+  const listening = voiceState === "listening"
 
   const handleSubmit = useCallback(async () => {
     const content = text.trim()
@@ -82,11 +84,11 @@ export function ChatInput() {
   const removePending = (i: number) => setPendingFiles(p => p.filter((_, idx) => idx !== i))
 
   return (
-    <div className="border-t border-neutral-800 bg-neutral-950 px-4 pb-4 pt-3">
+    <div className="px-4 pt-3 pb-4 sm:px-6">
       {/* Mode indicator row */}
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex min-w-0 items-center gap-2">
         <ModeIndicator />
-        <span className="text-[11px] text-neutral-600">
+        <span className="truncate text-caption text-fg-subtle">
           {CHAT_MODE_META[activeMode].description}
         </span>
       </div>
@@ -94,47 +96,48 @@ export function ChatInput() {
       {/* Pending file chips */}
       <AnimatePresence>
         {pendingFiles.length > 0 && (
-          <motion.div
+          <motion.ul
+            aria-label="Files to upload with this message"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-2 flex flex-wrap gap-2"
+            transition={transition.base}
+            className="mb-2 flex flex-wrap gap-1.5"
           >
             {pendingFiles.map((f, i) => (
-              <div
+              <li
                 key={i}
-                className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-2.5 py-1.5 text-xs text-neutral-300"
+                className="flex items-center gap-1.5 rounded-control border border-line bg-surface py-1 pr-1 pl-2 text-caption"
               >
-                <span className="truncate max-w-[120px]">{f.name}</span>
-                <span className="text-neutral-500">{formatBytes(f.size)}</span>
+                <Paperclip className="size-3 shrink-0 text-fg-subtle" aria-hidden="true" />
+                <span className="max-w-40 truncate text-fg">{f.name}</span>
+                <span className="text-fg-subtle">{formatBytes(f.size)}</span>
                 <button
+                  type="button"
+                  aria-label={`Remove ${f.name}`}
                   onClick={() => removePending(i)}
-                  className="text-neutral-500 hover:text-white transition-colors"
+                  className="flex size-5 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg focus-ring"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="size-3" aria-hidden="true" />
                 </button>
-              </div>
+              </li>
             ))}
-          </motion.div>
+          </motion.ul>
         )}
       </AnimatePresence>
 
       {/* Input box */}
-      <div
-        className={cn(
-          "flex items-end gap-2 rounded-xl border bg-neutral-900 px-3 py-2 transition-colors",
-          "border-neutral-700 focus-within:border-neutral-500"
-        )}
-      >
+      <div className="flex items-end gap-1 rounded-card border border-line-strong bg-surface p-1.5 transition-colors focus-within:border-ring focus-within:ring-1 focus-within:ring-ring">
         {/* Attach */}
         <Tooltip content="Attach file">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 mb-0.5"
+            className="shrink-0"
+            aria-label="Attach file"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Paperclip className="h-4 w-4" />
+            <Paperclip className="size-4" aria-hidden="true" />
           </Button>
         </Tooltip>
         <input
@@ -149,48 +152,49 @@ export function ChatInput() {
         {/* Textarea */}
         <textarea
           ref={textareaRef}
+          aria-label="Message"
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder={MODE_PLACEHOLDERS[activeMode]}
           rows={1}
           disabled={isStreaming}
-          className="flex-1 resize-none bg-transparent text-sm text-white placeholder:text-neutral-500 focus:outline-none disabled:opacity-40 py-1 max-h-[200px]"
+          className="max-h-50 min-h-8 flex-1 resize-none bg-transparent px-1.5 py-1.5 text-body-lg text-fg placeholder:text-fg-subtle focus:outline-none disabled:opacity-50"
         />
 
         {/* Voice */}
-        <Tooltip content={voiceState === "listening" ? "Stop listening" : "Voice input"}>
+        <Tooltip content={listening ? "Stop listening" : "Voice input"}>
           <Button
             variant="ghost"
             size="icon"
-            className={cn(
-              "h-8 w-8 shrink-0 mb-0.5",
-              voiceState === "listening" && "text-red-400 bg-red-500/10"
-            )}
-            onClick={voiceState === "listening" ? stopVoice : startVoice}
+            aria-label={listening ? "Stop listening" : "Voice input"}
+            aria-pressed={listening}
+            className={cn("shrink-0", listening && "bg-danger-subtle text-danger hover:bg-danger-subtle hover:text-danger")}
+            onClick={listening ? stopVoice : startVoice}
           >
-            {voiceState === "listening"
-              ? <MicOff className="h-4 w-4" />
-              : <Mic className="h-4 w-4" />}
+            {listening
+              ? <MicOff className="size-4" aria-hidden="true" />
+              : <Mic className="size-4" aria-hidden="true" />}
           </Button>
         </Tooltip>
 
         {/* Send */}
-        <Tooltip content={isStreaming ? "Streaming…" : "Send (Enter)"}>
+        <Tooltip content={isStreaming ? "Generating response…" : "Send (Enter)"}>
           <Button
             size="icon"
-            className="h-8 w-8 shrink-0 mb-0.5"
+            className="shrink-0"
+            aria-label={isStreaming ? "Generating response" : "Send message"}
             disabled={(!text.trim() && !isStreaming) || isStreaming}
             onClick={handleSubmit}
           >
             {isStreaming
-              ? <StopCircle className="h-4 w-4" />
-              : <Send className="h-4 w-4" />}
+              ? <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              : <ArrowUp className="size-4" aria-hidden="true" />}
           </Button>
         </Tooltip>
       </div>
 
-      <p className="mt-1.5 text-center text-[10px] text-neutral-700">
+      <p className="mt-2 text-center text-micro text-fg-subtle">
         DocuQuery can make mistakes. Verify important information.
       </p>
     </div>

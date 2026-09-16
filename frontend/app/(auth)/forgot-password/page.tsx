@@ -5,6 +5,8 @@ import { motion } from "framer-motion"
 import { Loader2, ArrowLeft, CheckCircle } from "lucide-react"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { AuthField, AuthHeading, AuthLink } from "@/components/auth/AuthForm"
+import { transition } from "@/lib/motion"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -20,28 +22,32 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={transition.slow}>
+      {/* Persistent live region so screen readers announce the swap to the confirmation view */}
+      <p role="status" className="sr-only">{sent ? "Reset link sent. Check your email." : ""}</p>
       {sent ? (
-        <div className="text-center space-y-3">
-          <CheckCircle className="h-10 w-10 text-green-400 mx-auto" />
-          <p className="text-sm text-neutral-300">Check your email for a reset link.</p>
-          <Link href="/login" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Back to sign in</Link>
+        <div className="space-y-5 text-center">
+          <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-success-subtle text-success">
+            <CheckCircle className="size-5" aria-hidden="true" />
+          </div>
+          <AuthHeading title="Check your email" description="We've sent a password reset link to your inbox." />
+          <AuthLink href="/login">Back to sign in</AuthLink>
         </div>
       ) : (
         <>
-          <p className="text-sm text-neutral-500 mb-4">Enter your email and we&apos;ll send a reset link.</p>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="forgot-email" className="text-xs font-medium text-neutral-400">Email</label>
-              <Input id="forgot-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-            </div>
+          <AuthHeading title="Reset your password" description="Enter your email and we'll send a reset link." />
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+            <AuthField id="forgot-email" label="Email">
+              <Input id="forgot-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            </AuthField>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
+              {loading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+              {loading ? "Sending…" : "Send reset link"}
             </Button>
           </form>
-          <div className="mt-4 text-center">
-            <Link href="/login" className="flex items-center justify-center gap-1 text-xs text-neutral-500 hover:text-white transition-colors">
-              <ArrowLeft className="h-3 w-3" /> Back to sign in
+          <div className="mt-6 flex justify-center">
+            <Link href="/login" className="inline-flex items-center gap-1 rounded-control text-fg-muted transition-colors hover:text-fg focus-ring">
+              <ArrowLeft className="size-3.5" aria-hidden="true" /> Back to sign in
             </Link>
           </div>
         </>

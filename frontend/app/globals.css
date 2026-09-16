@@ -1,7 +1,182 @@
 @import "tailwindcss";
 
+/* next-themes toggles `.dark` on <html>; point Tailwind's `dark:` variant at it
+   instead of the OS media query so the in-app theme choice always wins. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── Design tokens ────────────────────────────────────────────────────────────
+   Light values are declared in @theme; dark values override the same variables
+   in the `.dark` block below, so every color token exists in both themes.
+   Components use the generated utilities (bg-canvas, text-fg-muted, border-line,
+   rounded-card, text-body, shadow-overlay …) — never raw palette classes or hex.
+   The live reference is /style-guide (development only). */
+
+@theme static {
+  /* Only the tokens in this file exist. Tailwind's default palette, type scale, radii and
+     shadows are switched off, so raw classes such as bg-blue-600, text-sm, rounded-lg or
+     shadow-md generate no CSS and can't creep back in. (--container-* stays: container-query
+     breakpoints like @2xl use it.) */
+  --color-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+
+  /* Surfaces */
+  --color-canvas: #faf9f6;          /* page background */
+  --color-surface: #ffffff;         /* cards, inputs, panels */
+  --color-surface-raised: #ffffff;  /* menus, popovers, dialogs */
+  --color-surface-muted: #f3f2ee;   /* hover rows, subtle fills, active nav */
+
+  /* Lines */
+  --color-line: #e7e5e0;            /* hairline separators — decorative */
+  --color-line-strong: #8c8880;     /* form-control boundaries — 3:1 minimum */
+
+  /* Text */
+  --color-fg: #1c1b19;              /* primary text */
+  --color-fg-muted: #57544e;        /* secondary text */
+  --color-fg-subtle: #6e6b64;       /* tertiary text, placeholders, timestamps */
+
+  /* Accent ("ink indigo") — primary actions and active states only */
+  --color-accent: #3d4fd6;
+  --color-accent-hover: #3040bd;
+  --color-on-accent: #ffffff;       /* text and icons on accent fills */
+  --color-accent-strong: #3040bd;   /* accent-colored text and icons */
+  --color-accent-subtle: #eef0fc;   /* selected and highlighted backgrounds */
+  --color-ring: #3d4fd6;            /* focus-visible outline */
+
+  /* Status */
+  --color-danger: #c4281c;
+  --color-danger-subtle: #fcedeb;
+  --color-success: #1b6e3e;
+  --color-success-subtle: #e7f4eb;
+  --color-warning: #8f5400;
+  --color-warning-subtle: #fbf1df;
+
+  /* Overlay backdrop behind dialogs and the command palette */
+  --color-scrim: #1c1b1966;
+
+  /* Typography — dense UI sizes, restrained display sizes for marketing */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.25rem;
+  --text-body-lg: 0.875rem;
+  --text-body-lg--line-height: 1.375rem;
+  --text-title-sm: 1rem;
+  --text-title-sm--line-height: 1.5rem;
+  --text-title-sm--letter-spacing: -0.011em;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--letter-spacing: -0.016em;
+  --text-title-lg: 1.5rem;
+  --text-title-lg--line-height: 2rem;
+  --text-title-lg--letter-spacing: -0.019em;
+  --text-display-sm: 2.25rem;
+  --text-display-sm--line-height: 2.5rem;
+  --text-display-sm--letter-spacing: -0.024em;
+  --text-display: 3.5rem;
+  --text-display--line-height: 3.5rem;
+  --text-display--letter-spacing: -0.03em;
+
+  /* Reading width for long-form text (assistant answers) */
+  --container-reading: 68ch;
+
+  /* Radius */
+  --radius-control: 0.375rem;       /* 6px — buttons, inputs, chips */
+  --radius-card: 0.5rem;            /* 8px — cards, panels, menus, dialogs */
+
+  /* Elevation — borders separate surfaces; shadows are reserved for overlays */
+  --shadow-overlay: 0 0 0 1px var(--color-line), 0 8px 24px -6px var(--shadow-color), 0 2px 6px -2px var(--shadow-color);
+  --shadow-modal: 0 0 0 1px var(--color-line), 0 24px 64px -12px var(--shadow-color), 0 8px 16px -8px var(--shadow-color);
+
+  /* Motion — fast and precise; lib/motion.ts mirrors these for framer-motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    --shadow-color: rgb(28 27 25 / 0.08);
+    --duration-fast: 120ms;
+    --duration-base: 150ms;
+    --duration-slow: 180ms;
+    --icon-stroke-width: 1.5;
+  }
+
+  .dark {
+    --color-canvas: #141413;
+    --color-surface: #1b1b19;
+    --color-surface-raised: #222220;
+    --color-surface-muted: #2a2a27;
+    --color-line: #33322f;
+    --color-line-strong: #767570;
+    --color-fg: #edece8;
+    --color-fg-muted: #b0aea7;
+    --color-fg-subtle: #96948d;
+    --color-accent: #5566eb;
+    --color-accent-hover: #4a5bdf;
+    --color-on-accent: #ffffff;
+    --color-accent-strong: #a9b4ff;
+    --color-accent-subtle: #20254a;
+    --color-ring: #8391ff;
+    --color-danger: #f28b80;
+    --color-danger-subtle: #3b1f1c;
+    --color-success: #6acf93;
+    --color-success-subtle: #16301f;
+    --color-warning: #e8b45c;
+    --color-warning-subtle: #352914;
+    --color-scrim: #000000a6;
+    --shadow-color: rgb(0 0 0 / 0.5);
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-fg);
+  }
+
+  /* One stroke weight for every Lucide icon */
+  svg.lucide {
+    stroke-width: var(--icon-stroke-width);
+  }
+}
+
+/* Shared keyboard focus treatment for every interactive element */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Same ring drawn inside the element, for rows in scroll containers that would clip an outer ring */
+@utility focus-ring-inset {
+  &:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: -2px;
+  }
+}
+
+/* Entrance animations for overlays (tooltips, menus, the mobile navigation drawer) */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --animate-fade-in: fade-in var(--duration-fast) var(--ease-standard);
+  --animate-slide-in-left: slide-in-left var(--duration-slow) var(--ease-standard);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 * {
@@ -12,46 +187,70 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
-  background: #0a0a0a;
-  color: #f5f5f5;
-}
-
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #444; }
+::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-line-strong); }
 
-/* Markdown prose */
-.prose { color: inherit; max-width: none; }
-.prose p { margin: 0.4em 0; }
+/* Honor the OS reduced-motion setting for CSS transitions and animations
+   (framer-motion is covered by MotionConfig in Providers). */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Markdown prose (chat messages) — sizes inherit from the message; colors come from tokens */
+.prose { color: inherit; max-width: none; overflow-wrap: anywhere; }
+/* Keep single line breaks inside paragraphs (typed with Shift+Enter or streamed by the model) without
+   turning the newlines between block elements into blank lines */
+.prose p { margin: 0.4em 0; white-space: pre-wrap; }
+.prose > :first-child { margin-top: 0; }
+.prose > :last-child { margin-bottom: 0; }
 .prose code {
-  background: #1e1e2e;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  color: #a5b4fc;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-line);
+  padding: 0.05em 0.35em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  color: var(--color-fg);
 }
 .prose pre {
-  background: #1e1e2e;
-  border: 1px solid #2a2a3a;
-  border-radius: 8px;
-  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: 0.75rem 1rem;
   overflow-x: auto;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
 }
-.prose pre code { background: none; padding: 0; color: inherit; }
-.prose a { color: #60a5fa; text-decoration: underline; }
-.prose strong { color: #fff; }
-.prose h1, .prose h2, .prose h3 { color: #fff; margin: 0.75em 0 0.4em; }
-.prose ul, .prose ol { padding-left: 1.5em; }
+.prose pre code { background: none; border: 0; padding: 0; color: inherit; font-size: inherit; }
+.prose a { color: var(--color-accent-strong); text-decoration: underline; text-underline-offset: 2px; }
+.prose strong { color: var(--color-fg); font-weight: 600; }
+.prose h1, .prose h2, .prose h3 { color: var(--color-fg); font-weight: 600; letter-spacing: -0.011em; margin: 0.9em 0 0.4em; }
+.prose h1 { font-size: var(--text-title-sm); line-height: var(--text-title-sm--line-height); }
+.prose h2, .prose h3 { font-size: inherit; line-height: inherit; }
+/* Tailwind's reset removes list markers; markdown lists need them back */
+.prose ul { list-style: disc; padding-left: 1.25em; }
+.prose ol { list-style: decimal; padding-left: 1.25em; }
 .prose li { margin: 0.2em 0; }
+.prose li::marker { color: var(--color-fg-subtle); }
 .prose blockquote {
-  border-left: 3px solid #3b3b5c;
-  padding-left: 1em;
-  color: #9ca3af;
+  border-left: 2px solid var(--color-line-strong);
+  padding-left: 0.875em;
+  color: var(--color-fg-muted);
   margin: 0.5em 0;
 }
-.prose table { width: 100%; border-collapse: collapse; font-size: 0.875em; }
-.prose th, .prose td { border: 1px solid #2a2a3a; padding: 0.5em 0.75em; text-align: left; }
-.prose th { background: #1a1a2e; color: #e2e8f0; }
+.prose hr { border-color: var(--color-line); margin: 1em 0; }
+.prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: var(--text-body); }
+.prose th, .prose td { border: 1px solid var(--color-line); padding: 0.375rem 0.625rem; text-align: left; }
+.prose th { background: var(--color-surface-muted); color: var(--color-fg); font-weight: 600; }

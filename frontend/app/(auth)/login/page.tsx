@@ -1,12 +1,13 @@
 "use client"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { motion } from "framer-motion"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useAuthStore } from "@/stores/auth.store"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
+import { AuthField, AuthHeading, AuthLink } from "@/components/auth/AuthForm"
+import { transition } from "@/lib/motion"
 import toast from "react-hot-toast"
 
 export default function LoginPage() {
@@ -32,42 +33,46 @@ export default function LoginPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label htmlFor="login-email" className="text-xs font-medium text-neutral-400">Email</label>
-          <Input id="login-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="login-password" className="text-xs font-medium text-neutral-400">Password</label>
-          <div className="relative">
-            <Input
-              id="login-password"
-              type={showPw ? "text" : "password"}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              className="pr-10"
-            />
-            <button type="button" aria-label={showPw ? "Hide password" : "Show password"} onClick={() => setShowPw(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors">
-              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={transition.slow}>
+      <AuthHeading title="Sign in" description="Welcome back. Enter your details to continue." />
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <AuthField id="login-email" label="Email">
+          <Input id="login-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+        </AuthField>
+        <div className="space-y-2">
+          <AuthField id="login-password" label="Password">
+            <div className="relative">
+              <Input
+                id="login-password"
+                type={showPw ? "text" : "password"}
+                autoComplete="current-password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                aria-label={showPw ? "Hide password" : "Show password"}
+                onClick={() => setShowPw(v => !v)}
+                className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-control text-fg-subtle transition-colors hover:text-fg focus-ring"
+              >
+                {showPw ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+              </button>
+            </div>
+          </AuthField>
+          <div className="flex justify-end">
+            <AuthLink href="/forgot-password" className="text-caption text-fg-muted hover:text-fg">Forgot password?</AuthLink>
           </div>
         </div>
-        <div className="flex justify-end">
-          <Link href="/forgot-password" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
-            Forgot password?
-          </Link>
-        </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
+          {loading && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+          {loading ? "Signing in…" : "Sign in"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-xs text-neutral-500">
-        No account?{" "}
-        <Link href="/signup" className="text-blue-400 hover:text-blue-300 transition-colors">Sign up</Link>
+      <p className="mt-6 text-center text-fg-muted">
+        No account? <AuthLink href="/signup">Sign up</AuthLink>
       </p>
     </motion.div>
   )

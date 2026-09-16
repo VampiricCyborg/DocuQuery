@@ -1,5 +1,19 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+// Register the design-token scales from app/globals.css so tailwind-merge resolves
+// conflicts correctly — otherwise it reads `text-body` as a color and drops it
+// whenever it is merged with `text-fg`.
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: ["micro", "caption", "body", "body-lg", "title-sm", "title", "title-lg", "display-sm", "display"],
+      radius: ["control", "card"],
+      shadow: ["overlay", "modal"],
+      ease: ["standard"],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

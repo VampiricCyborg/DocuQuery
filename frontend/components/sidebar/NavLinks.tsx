@@ -13,25 +13,29 @@ const NAV = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ]
 
-export function NavLinks({ collapsed = false }: { collapsed?: boolean }) {
+export function NavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <nav className="flex flex-col gap-0.5 px-2 py-2">
+    <nav aria-label="Main" className={cn("flex flex-col gap-0.5", collapsed ? "items-center" : "px-2 py-2")}>
       {NAV.map(({ href, icon: Icon, label }) => {
         const active = pathname.startsWith(href)
         const item = (
           <Link
             key={href}
             href={href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            aria-label={collapsed ? label : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+              "flex items-center rounded-control text-body transition-colors focus-ring",
+              collapsed ? "size-8 justify-center" : "gap-2 px-2 py-1.5",
               active
-                ? "bg-neutral-800 text-white"
-                : "text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200"
+                ? "bg-surface-muted font-medium text-fg"
+                : "text-fg-muted hover:bg-surface-muted hover:text-fg"
             )}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="size-4 shrink-0" aria-hidden="true" />
             {!collapsed && <span>{label}</span>}
           </Link>
         )
