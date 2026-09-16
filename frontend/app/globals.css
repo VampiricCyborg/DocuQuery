@@ -179,6 +179,16 @@
   to { transform: translateX(0); }
 }
 
+@layer components {
+  /* Faint dot grid behind the landing hero, fading out toward the content below it */
+  .dot-grid {
+    background-image: radial-gradient(var(--color-line) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
