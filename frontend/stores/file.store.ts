@@ -7,7 +7,10 @@ interface FileStore {
   files: FileAttachment[]
   loadFiles: () => Promise<void>
   addFile: (file: File) => Promise<void>
+  /** Drops a row locally only — for uploads that never reached the server. */
   removeFile: (id: string) => void
+  /** Deletes the document on the server; the row returns if the request fails. */
+  deleteFile: (id: string) => Promise<void>
   reset: () => void
 }
 
@@ -21,7 +24,7 @@ const mapDocument = (doc: Awaited<ReturnType<typeof documentApi.list>>[number]):
   uploadedAt: doc.upload_time,
 })
 
-export const useFileStore = create<FileStore>()((set) => ({
+export const useFileStore = create<FileStore>()((set, get) => ({
   files: [],
   loadFiles: async () => {
     try { set({ files: (await documentApi.list()).map(mapDocument) }) } catch { /* retain local upload state */ }
@@ -46,6 +49,17 @@ export const useFileStore = create<FileStore>()((set) => ({
   },
 
   removeFile: (id) => set(s => ({ files: s.files.filter(f => f.id !== id) })),
+
+  deleteFile: async (id) => {
+    const previous = get().files
+    set(s => ({ files: s.files.filter(f => f.id !== id) }))
+    try {
+      await documentApi.delete(id)
+    } catch (error) {
+      set({ files: previous })
+      throw error
+    }
+  },
 
   // Drops the signed-in user's document list (sign-out / account switch).
   reset: () => set({ files: [] }),

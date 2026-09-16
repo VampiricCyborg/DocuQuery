@@ -56,6 +56,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const detail = await res.text()
     throw new Error(`API ${res.status}: ${detail}`)
   }
+  // DELETE answers 204 with no body; parsing that as JSON would throw.
+  if (res.status === 204 || res.headers.get("content-length") === "0") {
+    return undefined as T
+  }
   return res.json() as Promise<T>
 }
 
