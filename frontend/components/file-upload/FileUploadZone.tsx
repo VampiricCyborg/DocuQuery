@@ -1,11 +1,13 @@
 "use client"
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, CheckCircle2, File, FileText, Image, Loader2, Upload, X } from "lucide-react"
+import toast from "react-hot-toast"
 import { useFileStore } from "@/stores/file.store"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { cn, formatBytes } from "@/lib/utils"
 import { transition } from "@/lib/motion"
 import type { FileAttachment } from "@/types"
@@ -63,11 +65,34 @@ export function FileUploadZone() {
 }
 
 export function FileList({ highlightId }: { highlightId?: string | null } = {}) {
-  const { files, removeFile } = useFileStore()
+  const { files, removeFile, deleteFile } = useFileStore()
+  const [pendingDelete, setPendingDelete] = useState<FileAttachment | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return
+    // An upload still in flight has no document on the server yet — drop the row only.
+    if (pendingDelete.status === "uploading") {
+      removeFile(pendingDelete.id)
+      setPendingDelete(null)
+      return
+    }
+    setDeleting(true)
+    try {
+      await deleteFile(pendingDelete.id)
+      toast.success(`Deleted ${pendingDelete.name}`)
+      setPendingDelete(null)
+    } catch {
+      toast.error(`Could not delete ${pendingDelete.name}`)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   if (files.length === 0) return null
 
   return (
+    <>
     <div className="overflow-hidden rounded-card border border-line bg-surface">
       <table className="w-full table-fixed border-collapse text-left">
         <caption className="sr-only">Uploaded documents</caption>
@@ -83,16 +108,30 @@ export function FileList({ highlightId }: { highlightId?: string | null } = {}) 
         <tbody>
           <AnimatePresence initial={false}>
             {files.map(f => (
-              <FileRow key={f.id} file={f} highlighted={f.id === highlightId} onRemove={() => removeFile(f.id)} />
+              <FileRow key={f.id} file={f} highlighted={f.id === highlightId} onRequestDelete={() => setPendingDelete(f)} />
             ))}
           </AnimatePresence>
         </tbody>
       </table>
     </div>
+
+    <ConfirmDialog
+      open={pendingDelete !== null}
+      onOpenChange={open => { if (!open && !deleting) setPendingDelete(null) }}
+      title="Delete document?"
+      description={
+        pendingDelete
+          ? `${pendingDelete.name} and everything indexed from it will be removed. This can't be undone.`
+          : ""
+      }
+      busy={deleting}
+      onConfirm={confirmDelete}
+    />
+    </>
   )
 }
 
-function FileRow({ file, highlighted, onRemove }: { file: FileAttachment; highlighted?: boolean; onRemove: () => void }) {
+function FileRow({ file, highlighted, onRequestDelete }: { file: FileAttachment; highlighted?: boolean; onRequestDelete: () => void }) {
   const Icon = file.type === "pdf" ? FileText : file.type === "image" ? Image : File
 
   return (
@@ -126,7 +165,7 @@ function FileRow({ file, highlighted, onRemove }: { file: FileAttachment; highli
         {file.uploadedAt ? new Date(file.uploadedAt).toLocaleString() : "—"}
       </td>
       <td className="px-2 py-2 text-right">
-        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Delete ${file.name}`} onClick={onRemove}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Delete ${file.name}`} onClick={onRequestDelete}>
           <X className="size-3.5" aria-hidden="true" />
         </Button>
       </td>
