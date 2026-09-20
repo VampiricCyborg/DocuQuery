@@ -1,30 +1,32 @@
 # Dependencies Verification
 
-**Last Verified:** July 29, 2026
+**Last Verified:** September 20, 2026
 
-## ✅ All Third-Party Imports Covered
+## Scope
 
-This document confirms that all third-party Python packages imported across the codebase are included in `requirements.txt`.
+This document records the mapping between third-party Python packages imported
+across the backend and the entries in `requirements.txt`. It is a manual audit, so
+it is only as current as the date above — re-run the commands at the bottom after
+changing dependencies.
 
-### Import → Package Mapping
+## Imported directly by the code
 
-| Import Statement | Package in requirements.txt | Version |
+| Import statement | Package in requirements.txt | Version |
 |---|---|---|
-| `import fastapi` | `fastapi` | 0.115.5 |
-| `import uvicorn` | `uvicorn[standard]` | 0.32.1 |
-| `from fastapi import ...` | `python-multipart` | 0.0.18 |
+| `import fastapi` / `from fastapi import ...` | `fastapi` | 0.115.5 |
 | `from pydantic import ...` | `pydantic` | 2.10.3 |
 | `from pydantic_settings import ...` | `pydantic-settings` | 2.6.1 |
 | `from sqlalchemy import ...` | `sqlalchemy[asyncio]` | 2.0.36 |
 | `from alembic import ...` | `alembic` | 1.14.0 |
-| `import asyncpg` | `asyncpg` | 0.30.0 |
-| `import psycopg2` | `psycopg2-binary` | 2.9.10 |
 | `from pgvector.sqlalchemy import ...` | `pgvector` | 0.5.0 |
 | `import aiofiles` | `aiofiles` | 24.1.0 |
 | `import fitz` | `pymupdf` | 1.24.14 |
 | `from docx import ...` | `python-docx` | 1.1.2 |
 | `from langchain_text_splitters import ...` | `langchain-text-splitters` | 1.1.2 |
-| `from sentence_transformers import ...` | `sentence-transformers` | 5.4.1 |
+| `import onnxruntime` | `onnxruntime` | 1.30.0 |
+| `from tokenizers import ...` | `tokenizers` | 0.23.2 |
+| `import numpy` | `numpy` | 2.5.3 |
+| `import psutil` | `psutil` | 6.1.1 |
 | `from slowapi import ...` | `slowapi` | 0.1.9 |
 | `import httpx` | `httpx` | 0.28.1 |
 | `from groq import ...` | `groq` | 0.13.1 |
@@ -32,70 +34,60 @@ This document confirms that all third-party Python packages imported across the 
 | `from anthropic import ...` | `anthropic` | 0.40.0 |
 | `import google.generativeai` | `google-generativeai` | 0.8.3 |
 | `import pytest` | `pytest` | 9.1.1 |
-| `import pytest_asyncio` | `pytest-asyncio` | 1.4.0 |
 
-### Standard Library (No Installation Required)
+`from starlette... import ...` also appears in `app/core/middleware.py`. Starlette is a
+direct dependency of FastAPI and is installed with it, so it has no line of its own.
 
-The following imports are from Python's standard library and do not require entries in requirements.txt:
+## Required but never imported
 
-- `__future__`, `abc`, `asyncio`, `contextlib`, `dataclasses`, `datetime`, `enum`
-- `functools`, `json`, `logging`, `os`, `pathlib`, `re`, `sys`, `tempfile`, `time`
-- `typing`, `unittest`, `uuid`
+These are real runtime requirements that no source file imports by name, which is why
+they cannot be found by grepping for import statements:
 
-### Starlette (Included with FastAPI)
+| Package | Why it is needed |
+|---|---|
+| `uvicorn[standard]` | The ASGI server, invoked as a command by the Dockerfile and `railway.json` |
+| `python-multipart` | FastAPI parses `multipart/form-data` uploads through it |
+| `asyncpg` | The driver behind the `postgresql+asyncpg://` URL |
+| `psycopg2-binary` | `migrations/env.py` swaps to `+psycopg2` to render Alembic's offline SQL |
+| `greenlet` | SQLAlchemy's async bridge |
+| `python-dotenv` | How `pydantic-settings` reads `.env` |
+| `pytest-asyncio` | A pytest plugin, enabled via `asyncio_mode = auto` in `pytest.ini` |
 
-- `from starlette.middleware.base import ...`
-- `from starlette.requests import ...`
-- `from starlette.responses import ...`
+## Embeddings: ONNX Runtime, not sentence-transformers
 
-Starlette is a direct dependency of FastAPI and is automatically installed.
+Earlier revisions of this document listed `sentence-transformers` (and, transitively,
+PyTorch) as the embedding dependency. **That is no longer true and should not be
+reintroduced.** The PyTorch stack was deliberately removed because loading it
+exhausted memory on Railway's container and crashed the service on boot.
 
-### Greenlet (SQLAlchemy Dependency)
+Embeddings now run through `onnxruntime` and `tokenizers` against a quantised
+`BAAI/bge-small-en-v1.5` INT8 model (~35MB), downloaded into the image at build time
+by `scripts/download_embedding_model.py`. See `app/ingestion/embeddings.py`.
 
-- `greenlet==3.1.1` — Required by SQLAlchemy for async support
+## Coverage summary
 
-### Python-dotenv (Optional but Included)
+- **Packages in `requirements.txt`:** 28
+- **Imported directly:** 21 (plus Starlette, which ships with FastAPI)
+- **Required without being imported:** 7
+- **Unaccounted for:** 0
 
-- `python-dotenv==1.0.1` — Used for `.env` file loading in development
+## Verification commands
 
----
+Confirm every directly imported package resolves:
 
-## 📋 Coverage Summary
-
-- **Total packages in requirements.txt:** 26
-- **Third-party imports found in code:** 21
-- **Coverage:** ✅ **100%**
-- **Unused packages:** 0 (all are either direct imports or transitive dependencies)
-
----
-
-## 🔍 Files Scanned
-
-All Python files in:
-- `app/` — Core application code
-- `tests/` — Test suite
-- `migrations/` — Alembic migrations
-
-**Excluded:**
-- `__pycache__/` directories
-- `.pyc` compiled files
-- `node_modules` (frontend)
-
----
-
-## ✅ Verification Commands
-
-### Check all imports are importable:
 ```bash
 cd backend
 pip install -r requirements.txt
-python -c "import fastapi, sqlalchemy, pgvector, sentence_transformers, groq, openai, anthropic, google.generativeai"
+python -c "import fastapi, sqlalchemy, pgvector, onnxruntime, tokenizers, numpy, psutil, groq, openai, anthropic, google.generativeai"
 ```
 
-### Run tests to verify runtime dependencies:
+Confirm runtime dependencies are satisfied end to end:
+
 ```bash
 cd backend
-pytest tests/ -v
+pytest -q
 ```
 
-All 71 tests passing confirms all runtime dependencies are satisfied.
+The suite mocks the database and the embedding service, so it needs no PostgreSQL
+instance and no downloaded model — which is what lets CI run it with no services
+attached. A green run is the real check here; the count changes too often to record.
