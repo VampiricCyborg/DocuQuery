@@ -1,0 +1,89 @@
+{
+  "environment": {
+    "captured_at": "2026-09-20T12:13:20.686269+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "python": "3.13.1",
+    "cpu_count_logical": 12,
+    "numpy": "2.2.6",
+    "cpu_count_physical": 8,
+    "total_ram_gb": 15.68,
+    "onnxruntime": "1.26.0",
+    "git_commit": "0f876bb",
+    "git_dirty": true
+  },
+  "source_user_id": "eval-cf71fa4ac73d7e91",
+  "seed": 20260920,
+  "target_n": 12,
+  "generator_model": "qwen/qwen3.8-27b",
+  "generator_provider": "groq",
+  "generator_temperature": 0.0,
+  "generator_system_prompt": "You write evaluation questions for a document search system.\n\nYou are given one passage from a document. Write exactly one question that:\n- is answerable using ONLY that passage\n- a real person might plausibly ask about this document\n- does NOT quote the passage verbatim; use your own wording\n- does NOT refer to \"the passage\", \"the text\", \"the document\", \"above\", or \"this section\"\n- names the specific subject it asks about, so it is meaningful without seeing the passage\n\nAlso quote the shortest span from the passage that answers it.\n\nRespond with JSON only, no prose, no code fences:\n{\"question\": \"...\", \"answer_span\": \"...\"}\n\nIf the passage is boilerplate, a table of contents, a page header, a reference\nlist, or otherwise has no factual content worth asking about, respond exactly:\n{\"question\": null, \"answer_span\": null}",
+  "passage_selection": {
+    "pages_total": 4,
+    "pages_usable": 2,
+    "pages_rejected": {
+      "too_short": 2
+    },
+    "documents_with_usable_pages": 2,
+    "selected": 2
+  },
+  "candidates_offered": 2,
+  "queries_generated": 2,
+  "passages_rejected_by_generator": 0,
+  "generation_errors": 0,
+  "generation_seconds": 0.7,
+  "documents_covered": 2,
+  "queries": [
+    {
+      "query_id": "q001",
+      "query": "What is the maximum file size supported for uploads in DocuQuery?",
+      "answer_span": "up to 50MB",
+      "gt_document_id": "6da1be77-be1f-4d76-9b7d-1a4d19218b9c",
+      "gt_filename": "README.md",
+      "gt_page": 1,
+      "gt_passage": "<div align=\"center\">\n\n<img src=\"docs/screenshots/hero-dark.png\" alt=\"DocuQuery — ask your documents a question and get a cited answer\" width=\"820\">\n\n<br/>\n\n# DocuQuery\n\n### Turn a folder of PDFs, DOCX, and text files into a source you can ask questions.\n\nUpload your documents. DocuQuery reads them, indexes them, and answers questions with the\nexact page and passage the answer came from — no more skimming a 40-page report for one number.\n\n[**Live demo**](#-see-it-work) · [**Quick start**](#-quick-start) · [**Features**](#-features) · [**API reference**](#-api-reference) · [**Roadmap**](#-roadmap)\n![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)\n![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat-square)\n![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=flat-square&logo=next.js)\n![React](https://img.shields.io/badge/React-19.2-61dafb?style=flat-square&logo=react)\n![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat-square&logo=fastapi)\n![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20%2B%20pgvector-336791?style=flat-square&logo=postgresql)\n![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)\n![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)\n\n</div>\n\n---\n\n## What DocuQuery actually does\n</div>\n\n---\n\n## What DocuQuery actually does\n\nMost \"chat with your docs\" demos are a thin wrapper around one LLM call. DocuQuery is the\nplumbing that makes that call trustworthy: it parses your files properly, chunks and embeds\nthem, stores the vectors in Postgres, retrieves the passages that actually answer the question,\nand hands the model only that — then shows you exactly where the answer came from.\n- 📂 **Drop in a file** — PDF, DOCX, TXT, or Markdown, up to 50MB\n- ⚡ **It gets indexed automatically** — parsed, cleaned, chunked, embedded, and stored in seconds\n- 💬 **Ask in plain language** — no query syntax, no filters to configure\n- 📎 **Get an answer with receipts** — every claim links back to the filename, page, and passage\n- 🔀 **Pick how strict you want it** — answer strictly from your documents, from general knowledge, or both\n\n---\n\n## 👀 See it work\n\n<div align=\"center\">\n<img src=\"docs/screenshots/demo.gif\" alt=\"A question is typed, DocuQuery searches the uploaded documents, streams back an answer, then shows t",
+      "gt_chunk_indexes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "query_id": "q002",
+      "query": "Which package is required for FastAPI to parse multipart/form-data uploads but is never imported directly by the source code?",
+      "answer_span": "FastAPI parses `multipart/form-data` uploads through it",
+      "gt_document_id": "ccbe16bd-7f8f-4574-a92d-f41ea628fc44",
+      "gt_filename": "DEPENDENCIES_VERIFIED.md",
+      "gt_page": 1,
+      "gt_passage": "# Dependencies Verification\n\n**Last Verified:** September 20, 2026\n\n## Scope\n\nThis document records the mapping between third-party Python packages imported\nacross the backend and the entries in `requirements.txt`. It is a manual audit, so\nit is only as current as the date above — re-run the commands at the bottom after\nchanging dependencies.\n\n## Imported directly by the code\n| Import statement | Package in requirements.txt | Version |\n|---|---|---|\n| `import fastapi` / `from fastapi import ...` | `fastapi` | 0.115.5 |\n| `from pydantic import ...` | `pydantic` | 2.10.3 |\n| `from pydantic_settings import ...` | `pydantic-settings` | 2.6.1 |\n| `from sqlalchemy import ...` | `sqlalchemy[asyncio]` | 2.0.36 |\n| `from alembic import ...` | `alembic` | 1.14.0 |\n| `from pgvector.sqlalchemy import ...` | `pgvector` | 0.5.0 |\n| `import aiofiles` | `aiofiles` | 24.1.0 |\n| `import fitz` | `pymupdf` | 1.24.14 |\n| `from docx import ...` | `python-docx` | 1.1.2 |\n| `from langchain_text_splitters import ...` | `langchain-text-splitters` | 1.1.2 |\n| `import onnxruntime` | `onnxruntime` | 1.30.0 |\n| `from tokenizers import ...` | `tokenizers` | 0.23.2 |\n| `import onnxruntime` | `onnxruntime` | 1.30.0 |\n| `from tokenizers import ...` | `tokenizers` | 0.23.2 |\n| `import numpy` | `numpy` | 2.5.3 |\n| `import psutil` | `psutil` | 6.1.1 |\n| `from slowapi import ...` | `slowapi` | 0.1.9 |\n| `import httpx` | `httpx` | 0.28.1 |\n| `from groq import ...` | `groq` | 0.13.1 |\n| `from openai import ...` | `openai` | 1.57.4 |\n| `from anthropic import ...` | `anthropic` | 0.40.0 |\n| `import google.generativeai` | `google-generativeai` | 0.8.3 |\n| `import pytest` | `pytest` | 9.1.1 |\n`from starlette... import ...` also appears in `app/core/middleware.py`. Starlette is a\ndirect dependency of FastAPI and is installed with it, so it has no line of its own.\n\n## Required but never imported\n\nThese are real runtime requirements that no source file imports by name, which is why\nthey cannot be found by grepping for import statements:\n| Package | Why it is needed |\n|---|---|\n| `uvicorn[standard]` | The ASGI server, invoked as a command by the Dockerfile and `railway.json` |\n| `python-multipart` | FastAPI parses `multipart/form-data` uploads through it |\n| `asyncpg` | The driver behind the `postgresql+asyncpg://` URL |\n| `psycopg2-binary` | `migrations/env.py` swaps to `+psycopg2` to render Alembic's of",
+      "gt_chunk_indexes": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ]
+}
