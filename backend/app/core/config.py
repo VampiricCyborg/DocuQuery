@@ -1,6 +1,13 @@
 import json
 from functools import lru_cache
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The value auth_secret falls back to when nothing sets AUTH_SECRET. It is a public
+# constant in a public repo, so a deployment still carrying it signs session cookies
+# with a key anyone can read. _reject_insecure_auth_secret below refuses to build a
+# non-debug Settings in that state.
+DEV_AUTH_SECRET = "dev-only-change-me"
 
 
 class Settings(BaseSettings):
@@ -55,7 +62,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
 
     # Authentication. Set a strong value in Railway/Vercel environments.
-    auth_secret: str = "dev-only-change-me"
+    auth_secret: str = DEV_AUTH_SECRET
     auth_cookie_name: str = "docuquery_session"
     auth_session_days: int = 30
     # Production-safe default for Vercel -> Railway cross-site requests.
@@ -97,6 +104,27 @@ class Settings(BaseSettings):
     @property
     def max_file_size_bytes(self) -> int:
         return self.max_file_size_mb * 1024 * 1024
+
+    @model_validator(mode="after")
+    def _reject_insecure_auth_secret(self) -> "Settings":
+        """Refuse to build production settings that sign sessions with a known key.
+
+        auth_secret is the only input to the session cookie's HMAC, so the shipped
+        default lets anyone mint a cookie for any user id. Failing here — at
+        Settings() construction — means the process dies before create_app() wires a
+        single route, rather than serving forgeable sessions. Debug builds are exempt
+        so local development needs no setup.
+        """
+        if self.debug:
+            return self
+        if not self.auth_secret.strip() or self.auth_secret == DEV_AUTH_SECRET:
+            raise ValueError(
+                "AUTH_SECRET is unset or still the development default. Set it to a "
+                "strong random value (e.g. `python -c \"import secrets; "
+                "print(secrets.token_urlsafe(48))\"`) in the deployment environment, "
+                "or set DEBUG=true for local development."
+            )
+        return self
 
 
 @lru_cache
