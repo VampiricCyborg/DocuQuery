@@ -5,12 +5,14 @@
   "ground_truth_convention": "Documents are referenced by their manifest `id`, never by database document_id, because the latter is regenerated on every ingest.",
   "caveats": [
     "Written from document titles and scope, not by reading every page. Each item needs a human to confirm the answer really is where it is claimed to be, or really is absent.",
-    "The unanswerable slice is the fragile one: several NIST documents carry crosswalks to external frameworks, so a question meant to be unanswerable can turn out to be partly covered by a mapping table. See verification.",
+    "The unanswerable slice was the fragile one and this proved correct: 4 of 15 draft items asked about frameworks the NIST and Federal Reserve documents genuinely discuss. Those were replaced and the slice re-verified; see `verification`.",
     "Multi-hop items assert that two documents are needed. A single document may in practice answer some of them, which would make those items easy rather than wrong."
   ],
   "verification": {
-    "status": "pending",
-    "method": "Each unanswerable query's distinguishing terms are searched against the ingested chunk text. A query whose terms appear is either rewritten or dropped before the slice is used."
+    "status": "verified",
+    "method": "Full text of all 27 corpus PDFs extracted with PyMuPDF and searched for each item's distinguishing terms, case-insensitively and on word boundaries. Word boundaries matter: a substring search reported 903 hits for 'Rust', every one of them inside 'trust'.",
+    "result": "4 of the original 15 were contaminated and were replaced (see each item's why_absent): PCI DSS, HIPAA, Basel III and NBER are all genuinely discussed in the corpus. The remaining 11 verify absent.",
+    "not_verified": "The multi_hop and followup slices are NOT mechanically verified. Their ground-truth document assignments come from document scope and still need a human to confirm the answer is on the page claimed."
   },
   "slices": {
     "unanswerable": {
@@ -24,8 +26,8 @@
         },
         {
           "id": "una-02",
-          "query": "Under PCI DSS v4.0, how often must an organisation perform internal vulnerability scans of the cardholder data environment?",
-          "why_absent": "Payment-card industry standard published by the PCI SSC, not a NIST or Federal Reserve document."
+          "query": "Under the EU's Digital Operational Resilience Act, how often must a financial entity carry out threat-led penetration testing?",
+          "why_absent": "EU financial-sector regulation. Replaced the original PCI DSS question: 'PCI DSS' and 'Payment Card Industry' occur 18 times across SP 800-92, 800-146, 800-209 and 800-218 as a compliance driver, which made it a poor probe for absence."
         },
         {
           "id": "una-03",
@@ -40,7 +42,7 @@
         {
           "id": "una-05",
           "query": "What are the five technical controls required for UK Cyber Essentials certification?",
-          "why_absent": "UK NCSC scheme; not covered by U.S. federal publications."
+          "why_absent": "UK NCSC scheme. 'Cyber Essentials' does not occur in the corpus. Note that the acronym NCSC does appear three times, but it refers to the U.S. ODNI National Counterintelligence and Security Center, not the UK National Cyber Security Centre."
         },
         {
           "id": "una-06",
@@ -49,18 +51,18 @@
         },
         {
           "id": "una-07",
-          "query": "Under the HIPAA Security Rule, which implementation specifications are addressable rather than required?",
-          "why_absent": "HHS regulation; this corpus contains no HIPAA rule text."
+          "query": "What is the maximum fine for a data-protection breach under Brazil's LGPD?",
+          "why_absent": "Brazilian data-protection law. Replaced the original HIPAA question: 'HIPAA' occurs 33 times across the corpus as a compliance context, notably in IR 8259 and SP 800-207."
         },
         {
           "id": "una-08",
-          "query": "What liquidity coverage ratio does Basel III require internationally active banks to maintain?",
-          "why_absent": "Basel Committee standard; the Federal Reserve documents here are annual reports and a consumer-finance survey."
+          "query": "What reserve requirement ratio does the People's Bank of China apply to large commercial banks?",
+          "why_absent": "Chinese monetary policy. Replaced the original Basel III question: 'Basel III' and 'liquidity coverage ratio' both appear in the 2022 and 2023 Federal Reserve annual reports."
         },
         {
           "id": "una-09",
-          "query": "How many consecutive quarters of negative GDP growth does the NBER require before declaring a recession?",
-          "why_absent": "NBER methodology; not present in the Fed annual reports or the SCF."
+          "query": "Which price index does the Bank of Japan use to measure its 2 percent inflation target?",
+          "why_absent": "Japanese monetary policy. Replaced the original NBER question: 'National Bureau of Economic Research' appears in both Federal Reserve annual reports, defining the recession shading on their charts."
         },
         {
           "id": "una-10",
