@@ -45,11 +45,17 @@ pytest -q                       # both tiers
 pytest -q --cov=app --cov-report=term-missing
 
 # Evaluation — see backend/evaluation/README.md for the full sequence.
-python -m evaluation.ingest_corpus
-python -m evaluation.build_eval_set --n 100
-python -m evaluation.run_retrieval_eval
-python -m evaluation.run_perf_bench
+# Note these are invoked as paths, not with `-m`: the scripts import `_common`
+# flatly, and _common.py is what puts backend/ on sys.path for `app.*`.
+python evaluation/download_corpus.py
+python evaluation/ingest_corpus.py --corpus evaluation/corpus/files --reset
+python evaluation/build_eval_set.py --n 100
+python evaluation/run_retrieval_eval.py
+python evaluation/run_perf_bench.py
 ```
+
+Point the harness at a throwaway database with `EVAL_DATABASE_URL`; it defaults
+to the application's own `DATABASE_URL`, which is rarely what you want.
 
 Use port **5434** for the test database. The project's own dev stack
 (`docker compose`) already binds **5433**, and the integration fixtures TRUNCATE
