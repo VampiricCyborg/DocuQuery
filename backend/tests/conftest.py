@@ -23,6 +23,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -137,3 +138,90 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
             yield http_client
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@dataclass
+class SeededUser:
+    """A user that exists in the test database, plus the cookie that authenticates it."""
+
+    id: str
+    name: str
+    email: str
+    password: str
+    cookies: dict[str, str]
+
+
+@pytest_asyncio.fixture
+async def make_user(db_session: AsyncSession):
+    """
+    Factory for users that exist in the database and can make authenticated requests.
+
+    The session cookie is minted directly with `create_session` rather than by
+    posting to /auth/login, so that a test about document ownership fails for
+    ownership reasons and not because the login route changed.
+    """
+    from app.core.config import get_settings
+    from app.core.security import create_session, hash_password
+    from app.database.models import User
+
+    default_password = "correct horse battery staple"
+
+    async def _make(email: str, name: str = "Test User", password: str = default_password) -> SeededUser:
+        user = User(name=name, email=email, password_hash=hash_password(password))
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+        return SeededUser(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            password=password,
+            cookies={get_settings().auth_cookie_name: create_session(user.id)},
+        )
+
+    return _make
+
+
+@pytest_asyncio.fixture
+async def make_document(db_session: AsyncSession):
+    """
+    Factory for an indexed document with one embedded chunk, owned by `user_id`.
+
+    The embedding is a fixed unit vector rather than a real one. These tests assert
+    on which rows a query is allowed to reach, not on ranking quality, and a constant
+    vector keeps the result order deterministic.
+    """
+    from app.database.models import EMBEDDING_DIM, Document, DocumentChunk, ProcessingStatus
+
+    async def _make(
+        user_id: str,
+        filename: str = "owned.pdf",
+        text: str = "The quarterly revenue figure was 4.2 million dollars.",
+    ) -> Document:
+        doc = Document(
+            user_id=user_id,
+            filename=filename,
+            original_filename=filename,
+            file_type="pdf",
+            file_size=1024,
+            storage_path=f"uploads/{filename}",
+            status=ProcessingStatus.indexed,
+            total_chunks=1,
+        )
+        db_session.add(doc)
+        await db_session.flush()
+        db_session.add(
+            DocumentChunk(
+                document_id=doc.id,
+                chunk_index=0,
+                page_number=1,
+                text=text,
+                embedding=[0.1] * EMBEDDING_DIM,
+                metadata_={},
+            )
+        )
+        await db_session.commit()
+        await db_session.refresh(doc)
+        return doc
+
+    return _make
