@@ -17,11 +17,30 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      # The unit tier mocks the database, but the integration tier runs real SQL —
+      # ownership filters, cascades and pgvector columns are only meaningful against
+      # a real server. pg16 matches the Railway instance.
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: docuquery_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
-      # The suite mocks the database and the embedding service, so no services are
-      # needed. AUTH_SECRET is required because `from app.main import app` builds
-      # Settings at import time, and a non-debug Settings refuses the dev default.
+      # AUTH_SECRET is required because `from app.main import app` builds Settings at
+      # import time, and a non-debug Settings refuses the dev default.
       AUTH_SECRET: ci-only-secret-not-used-for-any-real-session
+      # Presence of this variable is what enables the integration tier; without it
+      # those tests skip. See backend/tests/conftest.py.
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/docuquery_test
     steps:
       - uses: actions/checkout@v4
 
@@ -34,8 +53,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Unit and integration run as one invocation so that a single coverage figure
+      # covers both. Coverage is reported, not gated — there is no --cov-fail-under
+      # until the baseline in BASELINE.md establishes what the number should be.
       - name: Run tests
-        run: pytest -q
+        run: pytest -q --cov=app --cov-report=term-missing --cov-report=xml
 
   frontend:
     name: Frontend — typecheck, lint, build
