@@ -203,16 +203,24 @@ curl -s -o /dev/null -w "%{http_code}" https://docuqueryprod.up.railway.app/auth
 
 ## 7. Defects found during this audit
 
-1. **`.env` names the wrong embedding model.** `EMBEDDING_MODEL=BAAI/bge-base-en-v1.5`,
-   but the model actually loaded from `embedding_model_dir` is bge-**small**-en-v1.5.
-   The label is only used in logs, so behaviour is correct — but any log-derived
-   evidence about which model ran would be wrong.
-2. **Migration `a9f3d6c1b5e8` leaves documents unsearchable but still marked indexed.**
-   It runs `UPDATE document_chunks SET embedding = NULL` without resetting
-   `documents.status`. The live database currently holds 5 documents at
-   `status='indexed'` but 31 chunks of which only 30 have an embedding — one
-   document is silently unsearchable while the UI reports it as indexed.
-3. **README documents 12 endpoints; 13 exist.** `GET /documents/{id}/debug` is undocumented.
+1. ~~**`.env` names the wrong embedding model.**~~ **Not reproducible — withdrawn.**
+   The committed `backend/.env.example` has read `EMBEDDING_MODEL=BAAI/bge-small-en-v1.5`
+   since `2f46ff0`, the same commit that swapped the model, and it matches both
+   `Settings.embedding_model` and the `bge-small-en-v1.5-onnx-int8` directory that is
+   actually loaded. The finding appears to have been taken from an untracked local
+   `.env` rather than the checked-in template.
+2. ~~**Migration `a9f3d6c1b5e8` leaves documents unsearchable but still marked indexed.**~~
+   **Fixed** by `d5e2c8a7f1b3`, which sets `status='failed'` on documents holding at
+   least one NULL-embedding chunk. `a9f3d6c1b5e8` itself is untouched: it has already
+   run in production, and Alembic will not re-run a stamped revision. Repair is out of
+   band via `backend/scripts/reindex.py`, because re-embedding inside a migration would
+   block boot — `railway.json` runs `alembic upgrade head` on every start.
+3. ~~**README documents 12 endpoints; 13 exist.**~~ **Fixed** — `GET /documents/{id}/debug`
+   is now in the README API table. It was kept rather than removed: nothing in
+   `frontend/` calls it, but it is filtered by `current_user.id` like every other
+   document route, and it is the diagnostic that surfaces defect 2 (recorded chunk
+   count vs. actual vs. how many carry an embedding), which `reindex.py` is verified
+   against.
 4. ~~**CI does not actually gate `main`.**~~ **Partly addressed.** `.github/workflows/ci.yml`
    existed only on the unmerged branch `fix/auth-secret-guard-ci`. An identical copy is now
    on `docs/refresh-dependency-verification`, and the README's fake static

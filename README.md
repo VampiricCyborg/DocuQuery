@@ -243,6 +243,7 @@ Every request to `POST /chat` carries a `mode`:
 | `GET` | `/documents` | List all documents with processing status |
 | `GET` | `/documents/{id}` | Get a single document |
 | `GET` | `/documents/{id}/chunks` | Inspect a document's indexed chunks |
+| `GET` | `/documents/{id}/debug` | Indexing diagnostics — recorded vs. actual chunk count, and how many carry an embedding |
 | `DELETE` | `/documents/{id}` | Delete a document and all its chunks |
 | `POST` | `/retrieve` | Vector similarity search — chunks + context, no LLM call |
 | `POST` | `/chat` | Full RAG pipeline — streams an answer with citations |
