@@ -8,7 +8,7 @@ from typing import AsyncGenerator
 
 from groq import AsyncGroq, APIConnectionError, APIStatusError, RateLimitError as GroqRateLimitError
 
-from app.llm.providers.base import BaseLLMProvider
+from app.llm.providers.base import BaseLLMProvider, build_chat_messages
 from app.llm.models import LLMRequest, LLMResponse
 from app.llm.exceptions import (
     ProviderUnavailableError,
@@ -30,7 +30,7 @@ class GroqProvider(BaseLLMProvider):
         try:
             response = await self._client.chat.completions.create(
                 model=request.model,
-                messages=self._build_messages(request),
+                messages=build_chat_messages(request),
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
                 stream=False,
@@ -69,7 +69,7 @@ class GroqProvider(BaseLLMProvider):
         try:
             stream = await self._client.chat.completions.create(
                 model=request.model,
-                messages=self._build_messages(request),
+                messages=build_chat_messages(request),
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
                 stream=True,
@@ -95,10 +95,3 @@ class GroqProvider(BaseLLMProvider):
             return len(models.data) > 0
         except Exception:
             return False
-
-    @staticmethod
-    def _build_messages(request: LLMRequest) -> list[dict]:
-        return [
-            {"role": "system", "content": request.system_prompt},
-            {"role": "user", "content": f"{request.context}\n\nQuestion: {request.user_message}"},
-        ]

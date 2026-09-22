@@ -12,7 +12,14 @@ import time
 from typing import AsyncGenerator
 
 from app.core.config import get_settings
-from app.llm.models import LLMRequest, LLMResponse, CitationRecord
+from app.llm.models import (
+    CHARS_PER_TOKEN,
+    CitationRecord,
+    HistoryMessage,
+    LLMRequest,
+    LLMResponse,
+    StreamCapture,
+)
 from app.llm.prompts import get_system_prompt
 from app.llm.providers.base import BaseLLMProvider
 from app.llm.stream import stream_with_citations
@@ -21,14 +28,9 @@ from app.retrieval.retrieval_pipeline import RetrievalResult
 
 logger = logging.getLogger(__name__)
 
-# Rough chars-per-token estimate used for context truncation.
-# Accurate enough for English prose; avoids a full tokeniser dependency.
-_CHARS_PER_TOKEN = 4
-
-
 def _truncate_context(context: str, max_tokens: int) -> str:
     """Hard-truncate context to stay within the configured token budget."""
-    max_chars = max_tokens * _CHARS_PER_TOKEN
+    max_chars = max_tokens * CHARS_PER_TOKEN
     if len(context) <= max_chars:
         return context
     truncated = context[:max_chars]
@@ -68,11 +70,14 @@ def _build_request(
     model: str,
     temperature: float,
     max_tokens: int,
+    history: list[HistoryMessage] | None = None,
 ) -> LLMRequest:
-    prompt_chars = len(system_prompt) + len(context) + len(message)
+    history = history or []
+    history_chars = sum(len(h.content) for h in history)
+    prompt_chars = len(system_prompt) + len(context) + len(message) + history_chars
     logger.info(
-        "[generator] prompt_chars=%d context_chars=%d",
-        prompt_chars, len(context),
+        "[generator] prompt_chars=%d context_chars=%d history_turns=%d history_chars=%d",
+        prompt_chars, len(context), len(history), history_chars,
     )
     return LLMRequest(
         system_prompt=system_prompt,
@@ -81,6 +86,7 @@ def _build_request(
         model=model,
         temperature=temperature,
         max_tokens=max_tokens,
+        history=history,
     )
 
 
@@ -95,7 +101,19 @@ class ResponseGenerator:
     def __init__(self, provider: BaseLLMProvider) -> None:
         self._provider = provider
 
-    async def generate(self, message: str, retrieval_result: RetrievalResult, mode: str = "docuquery") -> LLMResponse:
+    @property
+    def provider(self) -> BaseLLMProvider:
+        """The configured provider. Used by the query condenser, which needs a
+        plain one-shot completion rather than the retrieval-shaped pipeline."""
+        return self._provider
+
+    async def generate(
+        self,
+        message: str,
+        retrieval_result: RetrievalResult,
+        mode: str = "docuquery",
+        history: list[HistoryMessage] | None = None,
+    ) -> LLMResponse:
         """Non-streaming path — returns a complete LLMResponse with citations attached."""
         settings = get_settings()
         context, citations = self._prepare(retrieval_result, settings.llm_max_context_tokens, allow_empty=mode in ("llm", "hybrid"))
@@ -107,6 +125,7 @@ class ResponseGenerator:
             model=settings.llm_model,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
+            history=history,
         )
 
         t0 = time.monotonic()
@@ -120,7 +139,12 @@ class ResponseGenerator:
         return response
 
     async def stream(
-        self, message: str, retrieval_result: RetrievalResult, mode: str = "docuquery"
+        self,
+        message: str,
+        retrieval_result: RetrievalResult,
+        mode: str = "docuquery",
+        history: list[HistoryMessage] | None = None,
+        capture: StreamCapture | None = None,
     ) -> AsyncGenerator[str, None]:
         """Streaming path — yields SSE-framed tokens then a citations event."""
         settings = get_settings()
@@ -133,6 +157,7 @@ class ResponseGenerator:
             model=settings.llm_model,
             temperature=settings.llm_temperature,
             max_tokens=settings.llm_max_tokens,
+            history=history,
         )
 
         t0 = time.monotonic()
@@ -141,8 +166,13 @@ class ResponseGenerator:
             settings.llm_provider, len(retrieval_result.chunks),
         )
 
+        # Recorded before the first token, so a client that disconnects one token
+        # in still leaves behind a partial message with its citations attached.
+        if capture is not None:
+            capture.citations = citations
+
         token_gen = self._provider.stream(request)
-        async for event in stream_with_citations(token_gen, citations):
+        async for event in stream_with_citations(token_gen, citations, capture=capture):
             yield event
 
         logger.info("[generator] stream end latency=%.2fs", time.monotonic() - t0)

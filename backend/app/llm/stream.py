@@ -14,7 +14,19 @@ import json
 from dataclasses import asdict
 from typing import AsyncGenerator
 
-from app.llm.models import CitationRecord
+from app.llm.models import CitationRecord, StreamCapture
+
+
+def conversation_event(conversation_id: str) -> str:
+    """
+    Announces the conversation this stream belongs to.
+
+    Emitted first, and only when /chat created the conversation itself, so a
+    client that opened a brand-new chat learns its server id before any token
+    arrives -- early enough to put the id in the URL without waiting for, or
+    interrupting, the answer.
+    """
+    return f"event: conversation\ndata: {json.dumps({'id': conversation_id})}\n\n"
 
 
 def token_event(token: str) -> str:
@@ -38,13 +50,19 @@ def error_event(message: str) -> str:
 async def stream_with_citations(
     token_stream: AsyncGenerator[str, None],
     citations: list[CitationRecord],
+    capture: StreamCapture | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     Wrap a raw token stream with SSE framing.
 
-    Yields token events, then a single citations event, then [DONE].
+    Yields token events, then a single citations event, then [DONE]. When
+    `capture` is supplied each token is also recorded there, so the caller can
+    persist the answer -- including a partial one, if the client disconnects
+    before [DONE].
     """
     async for token in token_stream:
+        if capture is not None:
+            capture.tokens.append(token)
         yield token_event(token)
     yield citations_event(citations)
     yield done_event()
