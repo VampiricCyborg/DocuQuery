@@ -37,9 +37,11 @@ from sqlalchemy.pool import NullPool
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 # Tables emptied between integration tests. Ordering is irrelevant because the
-# TRUNCATE is a single statement with CASCADE, but document_chunks is listed first
-# to make the dependency direction obvious to a reader.
-_TRUNCATE_TABLES = ("document_chunks", "documents", "users")
+# TRUNCATE is a single statement with CASCADE, but dependents are listed first to
+# make the direction obvious to a reader. `messages` and `conversations` would be
+# reached anyway through users' CASCADE; naming them keeps the list honest about
+# what the fixture empties.
+_TRUNCATE_TABLES = ("document_chunks", "documents", "messages", "conversations", "users")
 
 # Alembic's env.py reads the app Settings, which refuse to build without AUTH_SECRET
 # whenever DEBUG is false. The migration subprocess therefore needs one of its own;
@@ -178,6 +180,60 @@ async def make_user(db_session: AsyncSession):
             password=password,
             cookies={get_settings().auth_cookie_name: create_session(user.id)},
         )
+
+    return _make
+
+
+@pytest_asyncio.fixture
+async def make_conversation(db_session: AsyncSession):
+    """
+    Factory for a conversation owned by `user_id`, optionally pre-filled with turns.
+
+    `turns` is a list of (user_text, assistant_text) pairs, written in order with
+    increasing timestamps so that `ORDER BY created_at` reproduces the thread. The
+    explicit spacing matters: rows inserted in one transaction can otherwise share
+    a timestamp to the microsecond, and the history loader would then be asserting
+    against an arbitrary order.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from app.database.models import Conversation, Message
+
+    async def _make(
+        user_id: str,
+        *,
+        title: str = "New Chat",
+        mode: str = "docuquery",
+        pinned: bool = False,
+        turns: list[tuple[str, str]] | None = None,
+    ) -> Conversation:
+        base = datetime.now(timezone.utc) - timedelta(hours=1)
+        conversation = Conversation(
+            user_id=user_id, title=title, mode=mode, pinned=pinned,
+            created_at=base, updated_at=base,
+        )
+        db_session.add(conversation)
+        await db_session.flush()
+
+        for index, (question, answer) in enumerate(turns or []):
+            db_session.add(
+                Message(
+                    conversation_id=conversation.id, role="user", content=question,
+                    status="complete", mode=mode,
+                    created_at=base + timedelta(seconds=index * 2),
+                )
+            )
+            db_session.add(
+                Message(
+                    conversation_id=conversation.id, role="assistant", content=answer,
+                    status="complete", mode=mode,
+                    created_at=base + timedelta(seconds=index * 2 + 1),
+                )
+            )
+
+        await db_session.commit()
+        await db_session.refresh(conversation)
+        return conversation
 
     return _make
 
