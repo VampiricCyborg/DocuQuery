@@ -60,12 +60,15 @@ export function ChatWindow() {
 
   const mode: ChatMode = conversation?.mode ?? draftMode
 
-  // The buffer belongs to this thread when the ids match, and also when the
-  // server has not named one yet -- that is a brand-new chat being answered in
-  // this very window.
+  // The buffer belongs to this thread when the ids match, and also when neither
+  // has one yet -- a brand-new chat being answered in this very window, before
+  // the server has said what its id is. Requiring both to be null matters: if
+  // you navigate into another conversation while a new chat is still streaming,
+  // its tokens must not appear in the thread you just opened.
   const streamingHere =
     streamStatus !== "idle" &&
-    (streamConversationId === activeId || streamConversationId === null)
+    (streamConversationId === activeId ||
+      (streamConversationId === null && activeId === null))
 
   const messages = useMemo<Message[]>(() => {
     const stored = conversation?.messages ?? []

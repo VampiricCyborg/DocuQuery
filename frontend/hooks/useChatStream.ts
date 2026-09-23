@@ -78,9 +78,8 @@ export function useChatStream() {
         }
       }
 
-      if (failed) {
-        failStream()
-      }
+      // Show the failure immediately; the refetch below decides what replaces it.
+      if (failed) failStream()
 
       if (conversationId) {
         // Await the refetch before clearing the buffer, so the streamed text is
@@ -89,7 +88,12 @@ export function useChatStream() {
         queryClient.invalidateQueries({ queryKey: conversationKeys.list() })
       }
 
-      if (!failed) endStream()
+      // Cleared even on failure. A provider error is recorded server-side as a
+      // message with status "error", so keeping the local error bubble as well
+      // would show the same failure twice. Where the request never reached the
+      // server there is no row and nothing to show, and the toast above is the
+      // feedback.
+      endStream()
     },
     [
       beginStream, attachStreamConversation, appendStreamToken,
