@@ -10,16 +10,18 @@ Integration tests are opt-in via TEST_DATABASE_URL. When it is unset every
 integration test is skipped, so `pytest -q` on a laptop with no database behaves
 exactly as it did before. CI sets it to a pgvector/pgvector:pg16 service container.
 
-    # local
-    docker run -d --name docuquery-test-db -p 5433:5432 \
-        -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=docuquery_test \
-        pgvector/pgvector:pg16
-    export TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/docuquery_test
+    # local -- port 5434, not 5433: the dev stack's docker compose already binds
+    # 5433, and the fixtures below TRUNCATE whatever they are pointed at.
+    docker run -d --name docuquery-test-db -p 5434:5432 \
+        -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+        -e POSTGRES_DB=docuquery_test pgvector/pgvector:pg16
+    export TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5434/docuquery_test
     pytest -q -m integration
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
@@ -31,7 +33,9 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine,
+)
 from sqlalchemy.pool import NullPool
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -103,24 +107,38 @@ def migrated_database(database_url: str) -> str:
 
 
 @pytest_asyncio.fixture
-async def db_session(migrated_database: str) -> AsyncGenerator[AsyncSession, None]:
-    """A session against the migrated test database, with the tables emptied first."""
+async def test_engine(migrated_database: str) -> AsyncGenerator[AsyncEngine, None]:
+    """
+    An engine on the migrated test database, with the tables emptied first.
+
+    Separate from `db_session` because application code that opens its own session
+    -- /chat saving an assistant message after the request session has closed --
+    needs the engine itself to build a sessionmaker from. `db_session.get_bind()`
+    is not that: on an AsyncSession it returns the *sync* Engine proxy, which
+    `async_sessionmaker` rejects.
+    """
     # NullPool: each test gets its own connections and disposes of them, rather than
     # leaving pooled ones open against a container that the next test truncates.
     engine = create_async_engine(migrated_database, poolclass=NullPool)
-    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
     async with engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {', '.join(_TRUNCATE_TABLES)} RESTART IDENTITY CASCADE"))
     try:
-        async with sessionmaker() as session:
-            yield session
+        yield engine
     finally:
         await engine.dispose()
 
 
 @pytest_asyncio.fixture
+async def db_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """A session against the migrated, emptied test database."""
+    sessionmaker = async_sessionmaker(test_engine, expire_on_commit=False)
+    async with sessionmaker() as session:
+        yield session
+
+
+@pytest_asyncio.fixture
 async def client(
-    db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+    db_session: AsyncSession, test_engine: AsyncEngine, monkeypatch: pytest.MonkeyPatch
 ) -> AsyncGenerator[AsyncClient, None]:
     """
     An HTTP client bound to the real test database.
@@ -145,7 +163,7 @@ async def client(
 
     monkeypatch.setattr(
         "app.api.chat.AsyncSessionLocal",
-        async_sessionmaker(db_session.get_bind(), expire_on_commit=False),
+        async_sessionmaker(test_engine, expire_on_commit=False),
     )
 
     app.dependency_overrides[get_db] = _override_get_db
@@ -156,6 +174,44 @@ async def client(
             yield http_client
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest_asyncio.fixture
+async def live_server(client: AsyncClient) -> AsyncGenerator[str, None]:
+    """
+    The app on a real TCP port, for the one thing ASGITransport cannot do.
+
+    httpx's ASGITransport buffers the entire response body before yielding a
+    single line, so under it a streaming endpoint always runs to completion and a
+    client cannot disconnect mid-answer. Testing the partial-save path needs a
+    socket that can actually be closed early.
+
+    Depends on `client` for its side effects, not its value: that fixture installs
+    the `get_db` override and redirects `AsyncSessionLocal`, and uvicorn runs in
+    this same process and event loop, so both apply to requests it serves.
+
+    `lifespan="off"` skips the app's startup hook, which eagerly loads the ONNX
+    embedding model. Nothing here embeds anything, and loading it would cost time
+    and a few hundred MB per test run.
+    """
+    import uvicorn
+
+    from app.main import app
+
+    config = uvicorn.Config(app, host="127.0.0.1", port=0, log_level="warning", lifespan="off")
+    server = uvicorn.Server(config)
+    task = asyncio.create_task(server.serve())
+
+    # port=0 means the OS picks one; it is only knowable after the socket is bound.
+    while not server.started:
+        await asyncio.sleep(0.02)
+    port = server.servers[0].sockets[0].getsockname()[1]
+
+    try:
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        server.should_exit = True
+        await task
 
 
 @dataclass

@@ -21,6 +21,7 @@ from types import SimpleNamespace
 
 import pytest
 import pytest_asyncio
+from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.core.config import Settings
@@ -236,10 +237,21 @@ class RecordingProvider:
     the bug this phase fixes.
     """
 
-    def __init__(self, reply: str = "recorded answer", tokens: list[str] | None = None):
+    def __init__(
+        self,
+        reply: str = "recorded answer",
+        tokens: list[str] | None = None,
+        token_delay: float = 0.0,
+    ):
         self.seen: list = []
+        # Kept apart because the two calls mean different things: `generate` during
+        # a streaming chat is the query condenser, `stream` is the answer. A single
+        # list makes "what did the answer prompt see?" ambiguous.
+        self.generated: list = []
+        self.streamed: list = []
         self._reply = reply
         self._tokens = tokens
+        self._token_delay = token_delay
 
     @property
     def last(self):
@@ -247,6 +259,7 @@ class RecordingProvider:
 
     async def generate(self, request):
         self.seen.append(request)
+        self.generated.append(request)
         return SimpleNamespace(
             answer=self._reply, citations=[], model=request.model,
             prompt_tokens=None, completion_tokens=None,
@@ -254,11 +267,48 @@ class RecordingProvider:
 
     async def stream(self, request):
         self.seen.append(request)
-        for token in self._tokens or [self._reply]:
+        self.streamed.append(request)
+        for index, token in enumerate(self._tokens or [self._reply]):
+            # A delay between tokens leaves the route's generator genuinely
+            # suspended at a yield, which is what a mid-stream disconnect needs.
+            if index and self._token_delay:
+                await asyncio.sleep(self._token_delay)
             yield token
 
     async def health_check(self) -> bool:
         return True
+
+
+def fake_retrieval_returning(chunk_text: str, sink: list[str]):
+    """
+    A stand-in for run_retrieval_pipeline that records the query it was given.
+
+    It returns one real chunk on purpose. An empty result sends docuquery mode
+    into NoContextError before the provider is ever called, so a test that used
+    an empty one would be measuring the guard rather than the query.
+    """
+    from app.retrieval.retrieval_pipeline import ChunkResult, RetrievalResult
+
+    async def _fake(query, db, user_id, top_k, filters):
+        sink.append(query)
+        return RetrievalResult(
+            query=query,
+            chunks=[
+                ChunkResult(
+                    document_id="doc-1",
+                    filename="NIST.SP.800-207.pdf",
+                    page=7,
+                    chunk_index=0,
+                    similarity=0.71,
+                    text=chunk_text,
+                )
+            ],
+            context=chunk_text,
+            citations=[],
+            total_retrieved=1,
+        )
+
+    return _fake
 
 
 @pytest.fixture
@@ -556,16 +606,10 @@ async def test_condenser_timeout_falls_back_to_the_raw_message(
     )
 
     retrieved: list[str] = []
-
-    async def fake_retrieval(query, db, user_id, top_k, filters):
-        retrieved.append(query)
-        from app.retrieval.retrieval_pipeline import RetrievalResult
-
-        return RetrievalResult(
-            query=query, chunks=[], context="some context", citations=[], total_retrieved=0
-        )
-
-    monkeypatch.setattr("app.api.chat.run_retrieval_pipeline", fake_retrieval)
+    monkeypatch.setattr(
+        "app.api.chat.run_retrieval_pipeline",
+        fake_retrieval_returning("A policy enforcement point enforces access decisions.", retrieved),
+    )
 
     # The answer call must not also hang, so swap the provider's generate back
     # once condensing has had its turn.
@@ -610,28 +654,15 @@ async def test_condensed_query_is_used_for_retrieval_but_not_for_the_answer(
 
     rewrite = "How does a policy enforcement point differ from a policy engine?"
 
-    class CondensingProvider(RecordingProvider):
-        async def generate(self, request):
-            self.seen.append(request)
-            return SimpleNamespace(
-                answer=rewrite, citations=[], model=request.model,
-                prompt_tokens=None, completion_tokens=None,
-            )
-
-    provider = CondensingProvider(tokens=["grounded answer"])
+    # `reply` is what the condenser's generate() returns; `tokens` is the answer.
+    provider = RecordingProvider(reply=rewrite, tokens=["grounded answer"])
     stub_chat(provider, llm_streaming_enabled=True, chat_condense_enabled=True)
 
     retrieved: list[str] = []
-
-    async def fake_retrieval(query, db, user_id, top_k, filters):
-        retrieved.append(query)
-        from app.retrieval.retrieval_pipeline import RetrievalResult
-
-        return RetrievalResult(
-            query=query, chunks=[], context="ctx", citations=[], total_retrieved=1
-        )
-
-    monkeypatch.setattr("app.api.chat.run_retrieval_pipeline", fake_retrieval)
+    monkeypatch.setattr(
+        "app.api.chat.run_retrieval_pipeline",
+        fake_retrieval_returning("A policy enforcement point enforces access decisions.", retrieved),
+    )
 
     original = "How does it differ from the policy engine?"
     async with client.stream(
@@ -644,42 +675,57 @@ async def test_condensed_query_is_used_for_retrieval_but_not_for_the_answer(
     # Retrieval saw the standalone rewrite ...
     assert retrieved == [rewrite]
     # ... while the answer prompt still saw what the user actually typed.
-    answer_request = provider.seen[-1]
-    assert answer_request.user_message == original
+    assert len(provider.streamed) == 1
+    assert provider.streamed[0].user_message == original
+    # And the condenser was the one that got the transcript.
+    assert len(provider.generated) == 1
+    assert original in provider.generated[0].user_message
 
 
 # --- Partial save on disconnect ---------------------------------------------
 
 async def test_client_disconnect_saves_a_partial_message(
-    client, db_session, two_users, make_conversation, stub_chat
+    live_server, client, db_session, two_users, make_conversation, stub_chat
 ):
     """
-    Abandoning the stream must still leave the text the user saw.
+    Abandoning the stream must still leave behind the text the user saw.
 
-    The client reads one frame and then exits the `stream` context, which closes
-    the response and throws GeneratorExit into the route's generator at its
-    suspended yield -- the same unwind a real disconnect produces.
+    This one needs a real socket. httpx's ASGITransport buffers the whole
+    response body before handing back a single line, so the application always
+    runs to completion under it and a mid-stream disconnect cannot happen at all
+    -- the route would record an ordinary `complete` message and the test would
+    pass while proving nothing.
     """
     owner, _ = two_users
     conversation = await make_conversation(owner.id, mode="llm")
+    # Without a delay the whole answer is produced before the client can walk
+    # away, even over a real connection.
     stub_chat(
-        RecordingProvider(tokens=["first ", "second ", "third"]),
+        RecordingProvider(tokens=["first ", "second ", "third"], token_delay=0.4),
         llm_streaming_enabled=True,
     )
 
-    async with client.stream(
-        "POST", "/chat",
-        json={"message": "tell me a long story", "conversation_id": conversation.id, "mode": "llm"},
-        cookies=owner.cookies,
-    ) as response:
-        assert response.status_code == 200
-        async for _ in response.aiter_lines():
-            break  # walk away mid-answer
+    async with AsyncClient(base_url=live_server, timeout=10.0) as http:
+        async with http.stream(
+            "POST", "/chat",
+            json={
+                "message": "tell me a long story",
+                "conversation_id": conversation.id,
+                "mode": "llm",
+            },
+            cookies=owner.cookies,
+        ) as response:
+            assert response.status_code == 200
+            async for line in response.aiter_lines():
+                if line.startswith("event: token"):
+                    break  # walk away mid-answer
+        # Leaving the context closes the socket; the server sees http.disconnect.
 
-    # The save runs on a session of its own, on a task the disconnect does not
-    # cancel; give the loop a turn to let it land.
-    for _ in range(50):
-        await asyncio.sleep(0.01)
+    stored = None
+    # The save runs on a task the disconnect does not cancel, from a session of
+    # its own. Poll rather than sleep a fixed amount.
+    for _ in range(100):
+        await asyncio.sleep(0.05)
         stored = await db_session.scalar(
             select(Message).where(
                 Message.conversation_id == conversation.id, Message.role == "assistant"
@@ -688,8 +734,8 @@ async def test_client_disconnect_saves_a_partial_message(
         if stored is not None:
             break
 
-    assert stored is not None
+    assert stored is not None, "no assistant message was written after the disconnect"
     assert stored.status == "partial"
-    # Whatever had been generated by the time the client left, and no more.
-    assert stored.content
-    assert stored.content in "first second third"
+    # Only what had actually been generated when the client left.
+    assert stored.content == "first "
+    assert stored.content != "first second third"
