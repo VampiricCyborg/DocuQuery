@@ -16,12 +16,13 @@ export default function AgentsPage() {
     description: (["Ask questions grounded in your uploaded documents.", "General AI conversations and open-ended questions.", "Combine document context with AI reasoning."] as const)[index],
   }))
   const { selectedAgent, setSelectedAgent } = useUIStore()
-  const setMode = useChatStore(s => s.setMode)
+  // Picking an agent chooses the mode the next chat starts in.
+  const setDraftMode = useChatStore(s => s.setDraftMode)
 
   const chooseAgent = (agent: typeof agents[number]) => {
     const selecting = selectedAgent?.id !== agent.id
     setSelectedAgent(selecting ? agent : null)
-    if (selecting && ["docuquery", "llm", "hybrid"].includes(agent.id)) setMode(agent.id as ChatMode)
+    if (selecting && ["docuquery", "llm", "hybrid"].includes(agent.id)) setDraftMode(agent.id as ChatMode)
   }
 
   return (

@@ -41,7 +41,10 @@ export interface Citation {
 
 // ─── Chat ────────────────────────────────────────────────────────────────────
 export type MessageRole = "user" | "assistant" | "system"
-export type MessageStatus = "sending" | "streaming" | "done" | "error"
+// "partial" is a server state: the answer was cut short because the client
+// disconnected while it was still streaming. It is a real, readable message, so
+// it renders normally — with a note saying it is incomplete.
+export type MessageStatus = "sending" | "streaming" | "done" | "partial" | "error"
 
 export interface Message {
   id: string
@@ -55,15 +58,25 @@ export interface Message {
   feedback?: "up" | "down" | null
 }
 
-export interface Conversation {
+/**
+ * A conversation as the sidebar list knows it — no messages.
+ *
+ * The list endpoint is paginated and deliberately does not carry message bodies;
+ * loading every thread's full transcript to draw a list of titles is what the
+ * old localStorage store effectively did.
+ */
+export interface ConversationSummary {
   id: string
   title: string
-  messages: Message[]
   mode: ChatMode
-  agentId?: string
   pinned: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface Conversation extends ConversationSummary {
+  messages: Message[]
+  agentId?: string
 }
 
 // ─── Files ───────────────────────────────────────────────────────────────────

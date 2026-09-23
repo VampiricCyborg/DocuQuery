@@ -2,17 +2,16 @@
 import { useState, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowUp, Loader2, Mic, MicOff, Paperclip, X } from "lucide-react"
-import { useChatStore } from "@/stores/chat.store"
+import { useChatStream } from "@/hooks/useChatStream"
+import { useActiveConversationId } from "@/hooks/useConversations"
 import { useFileStore } from "@/stores/file.store"
 import { useVoice } from "@/hooks/useVoice"
 import { Button } from "@/components/ui/Button"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { ModeIndicator } from "./ModeIndicator"
-import { cn, formatBytes, generateId } from "@/lib/utils"
+import { cn, formatBytes } from "@/lib/utils"
 import { transition } from "@/lib/motion"
-import { CHAT_MODE_META } from "@/types"
-import type { Conversation } from "@/types"
-import { getDefaultChatMode } from "@/stores/settings.store"
+import { CHAT_MODE_META, type ChatMode } from "@/types"
 
 const MODE_PLACEHOLDERS = {
   docuquery: "Ask about your uploaded documents…",
@@ -20,13 +19,15 @@ const MODE_PLACEHOLDERS = {
   hybrid: "Ask anything — documents first, then AI knowledge…",
 }
 
-export function ChatInput() {
+/** `mode` comes from the open conversation, or the draft mode for a new one. */
+export function ChatInput({ mode }: { mode: ChatMode }) {
   const [text, setText] = useState("")
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { sendMessage, isStreaming, activeId, addConversation, activeMode } = useChatStore()
+  const activeId = useActiveConversationId()
+  const { send, isStreaming } = useChatStream()
   const { addFile } = useFileStore()
 
   const { voiceState, start: startVoice, stop: stopVoice } = useVoice((transcript) => {
@@ -39,28 +40,16 @@ export function ChatInput() {
     const content = text.trim()
     if (!content || isStreaming) return
 
-    if (!activeId) {
-      const conv: Conversation = {
-        id: generateId(),
-        title: "New Chat",
-        messages: [],
-        mode: getDefaultChatMode(),
-        pinned: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      addConversation(conv)
-    }
-
     setText("")
     setPendingFiles([])
     for (const f of pendingFiles) addFile(f)
 
-    // Small delay to allow the store to register the new conversation
-    await new Promise(r => setTimeout(r, 0))
-    await sendMessage(content)
+    // No conversation is created up front any more. Sending without an id makes
+    // the server create one and announce it on the stream, which is also what
+    // puts the id in the URL.
+    await send(content, mode, activeId)
     textareaRef.current?.style.setProperty("height", "auto")
-  }, [text, isStreaming, activeId, pendingFiles, addFile, addConversation, sendMessage])
+  }, [text, isStreaming, activeId, mode, pendingFiles, addFile, send])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -87,9 +76,9 @@ export function ChatInput() {
     <div className="px-4 pt-3 pb-4 sm:px-6">
       {/* Mode indicator row */}
       <div className="mb-2 flex min-w-0 items-center gap-2">
-        <ModeIndicator />
+        <ModeIndicator mode={mode} />
         <span className="truncate text-caption text-fg-subtle">
-          {CHAT_MODE_META[activeMode].description}
+          {CHAT_MODE_META[mode].description}
         </span>
       </div>
 
@@ -156,7 +145,7 @@ export function ChatInput() {
           value={text}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          placeholder={MODE_PLACEHOLDERS[activeMode]}
+          placeholder={MODE_PLACEHOLDERS[mode]}
           rows={1}
           disabled={isStreaming}
           className="max-h-50 min-h-8 flex-1 resize-none bg-transparent px-1.5 py-1.5 text-body-lg text-fg placeholder:text-fg-subtle focus:outline-none disabled:opacity-50"

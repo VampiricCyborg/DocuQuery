@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { ChevronDown, Check } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
+import { useActiveConversationId, usePatchConversation } from "@/hooks/useConversations"
 import { CHAT_MODE_META, type ChatMode } from "@/types"
 import { CHAT_MODE_ICONS } from "./modeIcons"
 import { cn } from "@/lib/utils"
@@ -11,8 +12,19 @@ import { cn } from "@/lib/utils"
 const MODES: ChatMode[] = ["docuquery", "llm", "hybrid"]
 const MENU_WIDTH = 256
 
-export function ModeIndicator() {
-  const { activeMode, setMode } = useChatStore()
+export function ModeIndicator({ mode: activeMode }: { mode: ChatMode }) {
+  const activeId = useActiveConversationId()
+  const setDraftMode = useChatStore(s => s.setDraftMode)
+  const patchConversation = usePatchConversation()
+
+  // An open conversation stores its own mode, so changing it is a write. With no
+  // conversation yet there is nothing to write to, and the choice is remembered
+  // locally until the first message creates one.
+  const setMode = useCallback((next: ChatMode) => {
+    setDraftMode(next)
+    if (activeId) patchConversation.mutate({ id: activeId, mode: next })
+  }, [activeId, setDraftMode, patchConversation])
+
   const [open, setOpen] = useState(false)
   const [position, setPosition] = useState({ left: 0, top: 0 })
   const [mounted, setMounted] = useState(false)

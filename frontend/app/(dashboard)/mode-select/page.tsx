@@ -34,21 +34,14 @@ const MODE_FEATURES: Record<ChatMode, string[]> = {
 
 export default function ModeSelectPage() {
   const router = useRouter()
-  const { addConversation, activeMode } = useChatStore()
+  const draftMode = useChatStore(s => s.draftMode)
+  const setDraftMode = useChatStore(s => s.setDraftMode)
 
-  // addConversation also makes the new chat's mode the active mode. The page used to call setMode
-  // first, which rewrote the mode of whichever conversation was open before this one.
+  // Only the draft mode is set. Nothing is created until a message is sent, so
+  // browsing the modes no longer leaves empty chats behind -- and it cannot
+  // rewrite the mode of whichever conversation was open before this page.
   const handleSelect = (mode: ChatMode) => {
-    const conv: Conversation = {
-      id: generateId(),
-      title: "New Chat",
-      messages: [],
-      mode,
-      pinned: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    addConversation(conv)
+    setDraftMode(mode)
     router.push("/chat")
   }
 
@@ -75,7 +68,7 @@ export default function ModeSelectPage() {
           {MODES.map(mode => {
             const meta = CHAT_MODE_META[mode]
             const ModeIcon = CHAT_MODE_ICONS[mode]
-            const isActive = activeMode === mode
+            const isActive = draftMode === mode
 
             return (
               <li key={mode} className="flex">
@@ -129,7 +122,7 @@ export default function ModeSelectPage() {
             onClick={handleContinue}
             className="rounded-control text-fg-muted underline underline-offset-4 transition-colors hover:text-fg focus-ring"
           >
-            Continue with current mode ({CHAT_MODE_META[activeMode].label})
+            Continue with current mode ({CHAT_MODE_META[draftMode].label})
           </button>
         </div>
       </motion.div>

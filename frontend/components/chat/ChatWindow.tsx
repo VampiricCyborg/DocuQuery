@@ -1,15 +1,17 @@
 "use client"
+import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useChatStore } from "@/stores/chat.store"
+import { useActiveConversationId, useConversation } from "@/hooks/useConversations"
+import { useChatStream } from "@/hooks/useChatStream"
 import { MessageBubble } from "./MessageBubble"
 import { ChatInput } from "./ChatInput"
 import { CHAT_MODE_ICONS } from "./modeIcons"
 import { useAutoScroll } from "@/hooks/useAutoScroll"
 import { CHAT_MODE_META } from "@/types"
-import { generateId } from "@/lib/utils"
+import type { ChatMode, Message } from "@/types"
 import { transition } from "@/lib/motion"
-import type { Conversation } from "@/types"
-import { getDefaultChatMode } from "@/stores/settings.store"
+import { Skeleton } from "@/components/ui/Skeleton"
 
 const SUGGESTIONS_BY_MODE = {
   docuquery: [
@@ -38,48 +40,98 @@ const MODE_DETAILS = {
   hybrid: "Use your documents as context, then let AI reason through answers and next steps.",
 }
 
-export function ChatWindow() {
-  const { conversations, activeId, isStreaming, addConversation, sendMessage } = useChatStore()
-  const bottomRef = useAutoScroll()
-  const active = conversations.find(c => c.id === activeId)
+// Ids for the two bubbles that exist only while an answer is streaming. They are
+// never sent anywhere: the server assigns real ids, which arrive with the refetch.
+const PENDING_USER_ID = "pending-user"
+const PENDING_ASSISTANT_ID = "pending-assistant"
 
-  const handleSuggestion = async (text: string) => {
-    if (!activeId) {
-      const conv: Conversation = {
-        id: generateId(),
-        title: text.slice(0, 52).trim(),
-        messages: [],
-        mode: getDefaultChatMode(),
-        pinned: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      addConversation(conv)
-      // Let the store flush before sending
-      await new Promise(r => setTimeout(r, 0))
+export function ChatWindow() {
+  const activeId = useActiveConversationId()
+  const { data: conversation, isLoading } = useConversation(activeId)
+  const { send } = useChatStream()
+
+  const draftMode = useChatStore(s => s.draftMode)
+  const streamConversationId = useChatStore(s => s.streamConversationId)
+  const streamUserText = useChatStore(s => s.streamUserText)
+  const streamText = useChatStore(s => s.streamText)
+  const streamCitations = useChatStore(s => s.streamCitations)
+  const streamStatus = useChatStore(s => s.streamStatus)
+  const streamIsRetry = useChatStore(s => s.streamIsRetry)
+
+  const mode: ChatMode = conversation?.mode ?? draftMode
+
+  // The buffer belongs to this thread when the ids match, and also when the
+  // server has not named one yet -- that is a brand-new chat being answered in
+  // this very window.
+  const streamingHere =
+    streamStatus !== "idle" &&
+    (streamConversationId === activeId || streamConversationId === null)
+
+  const messages = useMemo<Message[]>(() => {
+    const stored = conversation?.messages ?? []
+    if (!streamingHere) return stored
+
+    const pending: Message[] = []
+    // A retry re-answers a question already on screen, so only the reply is new.
+    if (!streamIsRetry && streamUserText) {
+      pending.push({
+        id: PENDING_USER_ID,
+        role: "user",
+        content: streamUserText,
+        status: "done",
+        timestamp: new Date().toISOString(),
+      })
     }
-    await sendMessage(text)
+    pending.push({
+      id: PENDING_ASSISTANT_ID,
+      role: "assistant",
+      content: streamText,
+      status: streamStatus === "error" ? "error" : "streaming",
+      timestamp: new Date().toISOString(),
+      citations: streamCitations,
+    })
+
+    // On a retry the stored answer is about to be replaced server-side; drop it
+    // here too, or the old and new answers sit side by side while it streams.
+    const base = streamIsRetry
+      ? stored.slice(0, stored.findLastIndex(m => m.role === "assistant"))
+      : stored
+    return [...base, ...pending]
+  }, [conversation, streamingHere, streamIsRetry, streamUserText, streamText, streamStatus, streamCitations])
+
+  const bottomRef = useAutoScroll(messages.length, streamText)
+
+  const handleSuggestion = (text: string) => {
+    void send(text, mode, activeId)
   }
+
+  const showWelcome = !activeId && messages.length === 0
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-canvas text-body text-fg">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
-        {!active || active.messages.length === 0 ? (
-          <WelcomeScreen onSuggestion={handleSuggestion} />
+        {showWelcome ? (
+          <WelcomeScreen mode={mode} onSuggestion={handleSuggestion} />
+        ) : isLoading && messages.length === 0 ? (
+          <LoadingTranscript />
+        ) : messages.length === 0 ? (
+          <WelcomeScreen mode={mode} onSuggestion={handleSuggestion} />
         ) : (
           <div
             role="log"
             aria-label="Conversation"
             // Hold screen-reader announcements until a streamed answer is complete.
-            aria-busy={isStreaming}
+            aria-busy={streamingHere && streamStatus === "streaming"}
             className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-6 sm:py-8"
           >
-            {active.messages.map((msg, i) => (
+            {messages.map((msg, i) => (
               <MessageBubble
                 key={msg.id}
                 message={msg}
-                isLast={i === active.messages.length - 1}
+                isLast={i === messages.length - 1}
+                conversationId={activeId}
+                mode={mode}
               />
             ))}
             <div ref={bottomRef} className="h-2" />
@@ -90,18 +142,28 @@ export function ChatWindow() {
       {/* Input */}
       <div className="border-t border-line bg-canvas">
         <div className="mx-auto w-full max-w-3xl">
-          <ChatInput />
+          <ChatInput mode={mode} />
         </div>
       </div>
     </div>
   )
 }
 
-function WelcomeScreen({ onSuggestion }: { onSuggestion: (t: string) => void }) {
-  const { activeMode } = useChatStore()
-  const meta = CHAT_MODE_META[activeMode]
-  const ModeIcon = CHAT_MODE_ICONS[activeMode]
-  const suggestions = SUGGESTIONS_BY_MODE[activeMode]
+function LoadingTranscript() {
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
+      <p className="sr-only">Loading conversation…</p>
+      <Skeleton className="ml-auto h-10 w-2/3 rounded-card" />
+      <Skeleton className="h-24 w-full rounded-card" />
+      <Skeleton className="ml-auto h-10 w-1/2 rounded-card" />
+    </div>
+  )
+}
+
+function WelcomeScreen({ mode, onSuggestion }: { mode: ChatMode; onSuggestion: (t: string) => void }) {
+  const meta = CHAT_MODE_META[mode]
+  const ModeIcon = CHAT_MODE_ICONS[mode]
+  const suggestions = SUGGESTIONS_BY_MODE[mode]
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-4 py-12 sm:py-16">
@@ -117,7 +179,7 @@ function WelcomeScreen({ onSuggestion }: { onSuggestion: (t: string) => void }) 
 
         <h1 className="mt-4 text-title font-semibold">{meta.label} mode</h1>
         <p className="mt-1 text-body-lg text-fg-muted">{meta.description}</p>
-        <p className="mt-2 max-w-md text-fg-subtle">{MODE_DETAILS[activeMode]}</p>
+        <p className="mt-2 max-w-md text-fg-subtle">{MODE_DETAILS[mode]}</p>
 
         <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
           {suggestions.map(s => (
