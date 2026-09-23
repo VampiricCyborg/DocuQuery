@@ -249,7 +249,8 @@ async def chat(
 
         async def _stream() -> AsyncGenerator[str, None]:
             capture = StreamCapture()
-            status = "error"
+            completed = False
+            failed = False
             try:
                 if created:
                     yield conversation_event(conversation_id)
@@ -258,26 +259,42 @@ async def chat(
                     history=history, capture=capture,
                 ):
                     yield event
-                status = "complete"
+                completed = True
             except RateLimitError:
+                failed = True
                 yield "event: error\ndata: Rate limit reached. Please try again shortly.\n\n"
             except GenerationTimeoutError:
+                failed = True
                 yield "event: error\ndata: The request timed out. Please try again.\n\n"
             except ProviderUnavailableError:
+                failed = True
                 yield "event: error\ndata: AI service is temporarily unavailable.\n\n"
             except (NoContextError, MalformedResponseError) as exc:
+                failed = True
                 logger.error("[chat] Generation error: %s", exc)
                 yield "event: error\ndata: Failed to generate a response.\n\n"
             finally:
-                # Reached on every exit: normal completion, a provider error, and
-                # a client disconnect (which throws GeneratorExit in at the yield
-                # above). `status` is still "error" unless the loop ran to the
-                # end, so an abandoned answer is stored as what it is.
-                if status != "complete" and capture.tokens:
-                    status = "partial"
-
+                # Reached on every exit: normal completion, a provider error, and a
+                # client disconnect -- which throws GeneratorExit in at the yield
+                # above, so neither `completed` nor `failed` gets set.
+                #
+                # The three cases are kept apart deliberately. Treating a
+                # disconnect as an error would file every closed tab under
+                # "generation failed", and an abandoned answer would come back
+                # marked as something that never worked.
                 text = capture.text
-                if text or status == "error":
+                if completed:
+                    status = "complete"
+                elif failed:
+                    status = "error"
+                elif text:
+                    status = "partial"
+                else:
+                    # Gone before the first token. There is no answer to keep, and
+                    # nothing failed, so no row is written at all.
+                    status = None
+
+                if status is not None:
                     task = _persist_in_background(
                         _save_assistant_message(
                             conversation_id,

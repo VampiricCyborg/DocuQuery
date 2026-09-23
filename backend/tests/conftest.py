@@ -119,18 +119,34 @@ async def db_session(migrated_database: str) -> AsyncGenerator[AsyncSession, Non
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def client(
+    db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> AsyncGenerator[AsyncClient, None]:
     """
     An HTTP client bound to the real test database.
 
     `get_db` is overridden to hand every request the one session the test also holds,
     so a row the test writes is visible to the request and vice versa.
+
+    `app.api.chat.AsyncSessionLocal` is redirected at the same engine. Overriding
+    `get_db` is not enough on its own: /chat saves the assistant message from the
+    streaming generator's `finally`, where the request-scoped session is already
+    closed, so it opens one of its own from the sessionmaker. Left alone that
+    sessionmaker points at the *application's* DATABASE_URL, and every assistant
+    message an integration test provoked would be written to the developer's own
+    database instead of the disposable one -- invisible to the assertions here,
+    and quietly polluting a database this suite was never pointed at.
     """
     from app.api.dependencies import get_db
     from app.main import app
 
     async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
+
+    monkeypatch.setattr(
+        "app.api.chat.AsyncSessionLocal",
+        async_sessionmaker(db_session.get_bind(), expire_on_commit=False),
+    )
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
