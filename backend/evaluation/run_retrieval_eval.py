@@ -18,10 +18,16 @@ Hit Rate@k are the same quantity here: the share of queries with at least one
 relevant chunk in the top k. Both names are reported with that caveat attached
 rather than presented as two independent results.
 
+Follow-up mode (--mode followup) measures something different: turn 2 of a
+two-turn exchange, retrieved three ways -- on the user's literal follow-up, on
+the condenser's rewrite of it, and on the slice's hand-written reference rewrite.
+That is the number query condensing has to justify itself with.
+
 Usage:
     python evaluation/run_retrieval_eval.py --user-id eval-xxxx
     python evaluation/run_retrieval_eval.py --user-id eval-xxxx --no-threshold
     python evaluation/run_retrieval_eval.py --user-id eval-xxxx --filter-document
+    python evaluation/run_retrieval_eval.py --user-id eval-xxxx --mode followup
 """
 
 from __future__ import annotations
@@ -102,9 +108,241 @@ def score_level(per_query: list[list[bool]]) -> dict:
     return out
 
 
+# --- Follow-up mode ---------------------------------------------------------
+#
+# Measures the one thing query condensing exists for: whether turn 2 of a
+# conversation retrieves better when the elliptical follow-up is rewritten into a
+# standalone query than when it is embedded literally.
+#
+# Three variants run over the same items, so the columns are comparable:
+#
+#   raw                the user's literal turn-2 text -- what shipped before
+#   model_rewrite      app.llm.condenser's output, i.e. the deployed path
+#   reference_rewrite  the hand-written rewrite in the slice, a ceiling for what
+#                      a perfect condenser could achieve on this corpus
+#
+# Ground truth in this slice names documents by their manifest id, never by
+# database document_id, because the latter is regenerated on every ingest. The
+# join is through the filename the corpus was ingested under.
+
+FOLLOWUP_LEVEL = "document"
+
+# The condenser needs something to stand in for the assistant's turn-1 reply.
+# Generating one would put a second, non-deterministic LLM call in the middle of
+# a measurement; the top retrieved passage is what a grounded answer would have
+# been written from, so it is used instead. This is a proxy, and it is recorded
+# in the result file as one.
+PROXY_ANSWER_CHARS = 600
+
+
+def load_manifest_filenames(path: str) -> dict[str, str]:
+    """manifest id -> the filename the corpus was ingested under."""
+    import json
+    from pathlib import Path
+
+    manifest = json.loads(Path(path).read_text(encoding="utf-8"))
+    return {doc["id"]: doc["filename"] for doc in manifest["documents"]}
+
+
+def load_followup_items(path: str) -> tuple[list[dict], dict]:
+    import json
+    from pathlib import Path
+
+    blob = json.loads(Path(path).read_text(encoding="utf-8"))
+    slice_ = blob["slices"]["followup"]
+    provenance = {
+        "set_status": blob.get("status"),
+        "slice_description": slice_.get("description"),
+        "verification": blob.get("verification", {}).get("not_verified"),
+    }
+    return slice_["items"], provenance
+
+
+async def retrieve_filenames(db, query: str, user_id: str, top_k: int) -> list[str]:
+    """Filenames of the top-k chunks, in rank order. Empty when nothing clears."""
+    try:
+        result = await run_retrieval_pipeline(
+            query=query, db=db, user_id=user_id, top_k=top_k, filters=None
+        )
+    except NoResultsError:
+        return []
+    return [chunk.filename for chunk in result.chunks]
+
+
+async def retrieve_chunks(db, query: str, user_id: str, top_k: int):
+    try:
+        result = await run_retrieval_pipeline(
+            query=query, db=db, user_id=user_id, top_k=top_k, filters=None
+        )
+    except NoResultsError:
+        return []
+    return result.chunks
+
+
+def recall_at(hits: list[list[bool]], k: int) -> float:
+    if not hits:
+        return 0.0
+    return round(sum(1 for rels in hits if any(rels[:k])) / len(hits), 4)
+
+
+async def run_followup(args) -> None:
+    from app.llm import get_response_generator
+    from app.llm.condenser import condense_query
+    from app.llm.models import HistoryMessage
+
+    settings = get_settings()
+    settings.retrieval_max_context_chunks = max(
+        settings.retrieval_max_context_chunks, args.top_k
+    )
+
+    items, provenance = load_followup_items(args.slice_file)
+    filenames = load_manifest_filenames(args.manifest)
+    print(f"[follow-up] {len(items)} two-turn items from {args.slice_file}")
+
+    variants = ("raw", "model_rewrite", "reference_rewrite")
+    per_variant: dict[str, list[list[bool]]] = {v: [] for v in variants}
+    rewrite_latencies: list[float] = []
+    rewrite_outcomes: dict[str, int] = {}
+    rows: list[dict] = []
+
+    provider = get_response_generator().provider
+
+    engine = create_async_engine(eval_database_url(), pool_pre_ping=True)
+    Session = async_sessionmaker(engine, expire_on_commit=False)
+
+    async with Session() as db:
+        for index, item in enumerate(items, 1):
+            turn_1 = item["turn_1"]
+            turn_2 = item["turn_2"]
+            gt_filename = filenames.get(turn_2["gt_document_id"])
+            if gt_filename is None:
+                print(f"  [skip] {item['id']}: unknown manifest id {turn_2['gt_document_id']!r}")
+                continue
+
+            # Turn 1 establishes the conversation the follow-up depends on.
+            turn_1_chunks = await retrieve_chunks(db, turn_1["query"], args.user_id, args.top_k)
+            proxy_answer = (
+                turn_1_chunks[0].text[:PROXY_ANSWER_CHARS] if turn_1_chunks else ""
+            )
+            history = [
+                HistoryMessage(role="user", content=turn_1["query"]),
+                HistoryMessage(role="assistant", content=proxy_answer),
+            ]
+
+            condensed = await condense_query(provider, turn_2["query"], history)
+            rewrite_outcomes[condensed.outcome] = rewrite_outcomes.get(condensed.outcome, 0) + 1
+            if condensed.outcome == "ok":
+                rewrite_latencies.append(condensed.latency_ms)
+
+            queries = {
+                "raw": turn_2["query"],
+                "model_rewrite": condensed.query,
+                "reference_rewrite": item["reference_rewrite"],
+            }
+
+            retrieved: dict[str, list[str]] = {}
+            for variant in variants:
+                names = await retrieve_filenames(db, queries[variant], args.user_id, args.top_k)
+                retrieved[variant] = names
+                per_variant[variant].append([name == gt_filename for name in names])
+
+            rows.append(
+                {
+                    "id": item["id"],
+                    "turn_1": turn_1["query"],
+                    "turn_2_raw": turn_2["query"],
+                    "model_rewrite": condensed.query,
+                    "rewrite_outcome": condensed.outcome,
+                    "rewrite_latency_ms": round(condensed.latency_ms, 2),
+                    "reference_rewrite": item["reference_rewrite"],
+                    "gt_manifest_id": turn_2["gt_document_id"],
+                    "gt_filename": gt_filename,
+                    "turn_1_top_filename": turn_1_chunks[0].filename if turn_1_chunks else None,
+                    "retrieved_filenames": retrieved,
+                    "hit_at_5": {
+                        variant: any(per_variant[variant][-1][:5]) for variant in variants
+                    },
+                }
+            )
+            print(f"  [{index}/{len(items)}] {item['id']} scored")
+
+    await engine.dispose()
+
+    metrics = {
+        variant: {
+            "queries": len(per_variant[variant]),
+            **{f"recall_at_{k}": recall_at(per_variant[variant], k) for k in K_VALUES},
+        }
+        for variant in variants
+    }
+
+    payload = {
+        "run": {
+            "label": args.label,
+            "mode": "followup",
+            "user_id": args.user_id,
+            "slice_file": args.slice_file,
+            "items": len(rows),
+            "top_k": args.top_k,
+            "similarity_threshold": settings.retrieval_similarity_threshold,
+            "embedding_model": settings.embedding_model,
+            "llm_model": settings.llm_model,
+            "condense_prompt_version": "v1",
+            "relevance_level": FOLLOWUP_LEVEL,
+            "turn_1_answer": (
+                "proxy: the top retrieved passage from turn 1, truncated to "
+                f"{PROXY_ANSWER_CHARS} chars. No answer was generated, so the "
+                "condenser sees grounded context rather than a written reply."
+            ),
+        },
+        "provenance": provenance,
+        "metrics": metrics,
+        "rewrite_outcomes": rewrite_outcomes,
+        "rewrite_latency_ms": percentiles(rewrite_latencies),
+        "per_item": rows,
+    }
+
+    name = args.out or f"retrieval_eval_followup_{args.label or args.user_id}.json"
+    save(name, payload)
+
+    print()
+    print("=== turn-2 retrieval, document level ===")
+    print(f"{'variant':20s} {'n':>4s} {'R@1':>7s} {'R@3':>7s} {'R@5':>7s}")
+    for variant in variants:
+        m = metrics[variant]
+        print(
+            f"{variant:20s} {m['queries']:4d} "
+            f"{m['recall_at_1']:7.3f} {m['recall_at_3']:7.3f} {m['recall_at_5']:7.3f}"
+        )
+    latency = payload["rewrite_latency_ms"]
+    print()
+    print(f"rewrite latency ms: P50={latency['p50']} P95={latency['p95']} n={latency['n']}")
+    print(f"rewrite outcomes:   {rewrite_outcomes}")
+    if provenance.get("set_status"):
+        print()
+        print(f"NOTE: {provenance['set_status']}")
+
+
 async def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--user-id", required=True)
+    ap.add_argument(
+        "--mode",
+        choices=("standard", "followup"),
+        default="standard",
+        help="standard scores the generated eval set; followup scores turn 2 of the "
+             "two-turn slice with and without query condensing",
+    )
+    ap.add_argument(
+        "--slice-file",
+        default="evaluation/sets/manual.json",
+        help="follow-up mode only: the hand-written slice file",
+    )
+    ap.add_argument(
+        "--manifest",
+        default="evaluation/corpus/manifest.json",
+        help="follow-up mode only: maps the slice's manifest ids to ingested filenames",
+    )
     ap.add_argument("--eval-set", default="eval_set.json")
     ap.add_argument("--top-k", type=int, default=10)
     ap.add_argument(
@@ -120,6 +358,10 @@ async def main() -> None:
     ap.add_argument("--label", default="")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
+
+    if args.mode == "followup":
+        await run_followup(args)
+        return
 
     settings = get_settings()
     original_threshold = settings.retrieval_similarity_threshold
