@@ -32,6 +32,69 @@ export interface ChatResponseBody {
   citations: CitationOut[]
   model: string
   conversation_id?: string
+  retrieval_query?: string
+}
+
+// ─── Conversations ────────────────────────────────────────────────────────────
+
+export type ChatModeWire = "docuquery" | "llm" | "hybrid"
+export type MessageStatusWire = "complete" | "partial" | "error"
+
+export interface MessageOut {
+  id: string
+  conversation_id: string
+  role: "user" | "assistant"
+  content: string
+  status: MessageStatusWire
+  mode?: ChatModeWire | null
+  model?: string | null
+  citations?: CitationOut[] | null
+  steps?: Record<string, unknown>[] | null
+  feedback?: "up" | "down" | null
+  created_at: string
+}
+
+export interface ConversationOut {
+  id: string
+  title: string
+  mode: ChatModeWire
+  pinned: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ConversationDetailOut extends ConversationOut {
+  messages: MessageOut[]
+}
+
+export interface ConversationPage {
+  items: ConversationOut[]
+  total: number
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
+export interface ConversationImportResult {
+  imported: number
+  skipped: number
+}
+
+/** A conversation in the shape POST /conversations/import accepts. */
+export interface ImportConversationBody {
+  title: string
+  mode: ChatModeWire
+  pinned: boolean
+  created_at?: string | null
+  updated_at?: string | null
+  messages: {
+    role: "user" | "assistant"
+    content: string
+    status: MessageStatusWire
+    citations?: CitationOut[] | null
+    feedback?: "up" | "down" | null
+    created_at?: string | null
+  }[]
 }
 
 /**
@@ -45,6 +108,14 @@ export interface StreamResult {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Carries the HTTP status so callers can tell a missing chat (404) from an outage. */
+export class ChatRequestError extends Error {
+  constructor(readonly status: number) {
+    super(`Chat request failed: ${status}`)
+    this.name = "ChatRequestError"
+  }
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -104,16 +175,62 @@ export const documentApi = {
   },
 }
 
+// ─── Conversations ────────────────────────────────────────────────────────────
+
+export const conversationApi = {
+  list: (limit = 100, offset = 0): Promise<ConversationPage> =>
+    request(`/conversations?limit=${limit}&offset=${offset}`),
+
+  get: (id: string): Promise<ConversationDetailOut> =>
+    request(`/conversations/${id}`),
+
+  create: (mode: ChatModeWire, title?: string): Promise<ConversationOut> =>
+    request("/conversations", {
+      method: "POST",
+      body: JSON.stringify({ mode, title: title ?? null }),
+    }),
+
+  /** Partial update — omitted fields are left alone by the server. */
+  patch: (
+    id: string,
+    changes: { title?: string; pinned?: boolean; mode?: ChatModeWire },
+  ): Promise<ConversationOut> =>
+    request(`/conversations/${id}`, { method: "PATCH", body: JSON.stringify(changes) }),
+
+  delete: (id: string): Promise<void> =>
+    request(`/conversations/${id}`, { method: "DELETE" }),
+
+  /** `feedback: null` clears an existing thumb. */
+  setFeedback: (
+    conversationId: string,
+    messageId: string,
+    feedback: "up" | "down" | null,
+  ): Promise<MessageOut> =>
+    request(`/conversations/${conversationId}/messages/${messageId}/feedback`, {
+      method: "PATCH",
+      body: JSON.stringify({ feedback }),
+    }),
+
+  import: (conversations: ImportConversationBody[]): Promise<ConversationImportResult> =>
+    request("/conversations/import", {
+      method: "POST",
+      body: JSON.stringify({ conversations }),
+    }),
+}
+
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
 export const chatApi = {
   /**
    * Streaming chat.
    *
-   * Yields `{ type: "token", data: string }` for each token and
-   * `{ type: "citations", data: CitationOut[] }` once at the end.
+   * Yields `{ type: "conversation", data: string }` first when the server created
+   * the conversation for this request, then `{ type: "token" }` per token and
+   * `{ type: "citations" }` once at the end.
    *
    * SSE protocol from backend:
+   *   event: conversation         — new conversation's id, first frame, new chats only
+   *   data: {"id": "..."}
    *   data: <token>               — token event (default event type)
    *   event: citations            — citation event
    *   data: <json array>
@@ -125,16 +242,31 @@ export const chatApi = {
     message: string,
     conversationId?: string,
     mode: "docuquery" | "llm" | "hybrid" = "docuquery",
-  ): AsyncGenerator<{ type: "token"; data: string } | { type: "citations"; data: CitationOut[] } | { type: "error"; data: string }> {
+    options: { regenerate?: boolean; signal?: AbortSignal } = {},
+  ): AsyncGenerator<
+    | { type: "conversation"; data: string }
+    | { type: "token"; data: string }
+    | { type: "citations"; data: CitationOut[] }
+    | { type: "error"; data: string }
+  > {
     const res = await fetch(`${BASE_URL}/chat`, {
       method: "POST",
       credentials: "include",
+      signal: options.signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, conversation_id: conversationId ?? null, mode }),
+      body: JSON.stringify({
+        message,
+        conversation_id: conversationId ?? null,
+        mode,
+        regenerate: options.regenerate ?? false,
+      }),
     })
 
     if (!res.ok || !res.body) {
-      throw new Error(`Chat request failed: ${res.status}`)
+      // A 404 here means the conversation is gone or was never the caller's.
+      // It arrives as a real status code because /chat resolves the conversation
+      // before it starts streaming.
+      throw new ChatRequestError(res.status)
     }
 
     const reader = res.body.getReader()
@@ -176,7 +308,13 @@ export const chatApi = {
 
           if (payload === "[DONE]") return
 
-          if (currentEventType === "citations") {
+          if (currentEventType === "conversation") {
+            try {
+              yield { type: "conversation", data: (JSON.parse(payload) as { id: string }).id }
+            } catch {
+              // malformed conversation frame — the stream is still usable
+            }
+          } else if (currentEventType === "citations") {
             try {
               const citations = JSON.parse(payload) as CitationOut[]
               yield { type: "citations", data: citations }

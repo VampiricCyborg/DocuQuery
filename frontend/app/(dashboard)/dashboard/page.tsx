@@ -8,12 +8,13 @@ import { ArrowRight, FileText, MessageSquare, MessageSquarePlus, Upload, type Lu
 import { useAuthStore } from "@/stores/auth.store"
 import { useFileStore } from "@/stores/file.store"
 import { useChatStore } from "@/stores/chat.store"
+import { useConversationList } from "@/hooks/useConversations"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Skeleton } from "@/components/ui/Skeleton"
 import { FileStatus } from "@/components/file-upload/FileUploadZone"
 import { CHAT_MODE_ICONS } from "@/components/chat/modeIcons"
-import { CHAT_MODE_META, type ChatMode, type Conversation } from "@/types"
+import { CHAT_MODE_META, type ChatMode } from "@/types"
 import { cn, formatBytes, formatRelative } from "@/lib/utils"
 import { transition } from "@/lib/motion"
 
@@ -29,9 +30,9 @@ export default function DashboardPage() {
   const user = useAuthStore(s => s.user)
   const files = useFileStore(s => s.files)
   const loadFiles = useFileStore(s => s.loadFiles)
-  const conversations = useChatStore(s => s.conversations)
-  const addConversation = useChatStore(s => s.addConversation)
-  const activeMode = useChatStore(s => s.activeMode)
+  const { conversations } = useConversationList()
+  const draftMode = useChatStore(s => s.draftMode)
+  const setDraftMode = useChatStore(s => s.setDraftMode)
   const router = useRouter()
   const [filesLoaded, setFilesLoaded] = useState(false)
 
@@ -58,13 +59,10 @@ export default function DashboardPage() {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, RECENT_LIMIT)
 
-  const startChat = (mode: ChatMode = activeMode) => {
-    const now = new Date().toISOString()
-    const conversation: Conversation = {
-      id: crypto.randomUUID(), title: "New Chat", messages: [], mode,
-      pinned: false, createdAt: now, updatedAt: now,
-    }
-    addConversation(conversation)
+  // The conversation is created by the server on the first message, so starting
+  // a chat is just choosing the mode and opening an empty one.
+  const startChat = (mode: ChatMode = draftMode) => {
+    setDraftMode(mode)
     router.push("/chat")
   }
 
@@ -189,7 +187,7 @@ export default function DashboardPage() {
             {MODES.map(mode => {
               const meta = CHAT_MODE_META[mode]
               const ModeIcon = CHAT_MODE_ICONS[mode]
-              const current = mode === activeMode
+              const current = mode === draftMode
               return (
                 <li key={mode} className="flex">
                   <button

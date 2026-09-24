@@ -7,9 +7,10 @@ import {
   Search, Settings, Sparkles, Upload, User, type LucideIcon,
 } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
+import { useChatStream } from "@/hooks/useChatStream"
+import { useConversationList } from "@/hooks/useConversations"
 import { getDefaultChatMode } from "@/stores/settings.store"
-import { cn, generateId, truncate } from "@/lib/utils"
-import type { Conversation } from "@/types"
+import { cn, truncate } from "@/lib/utils"
 
 type PaletteItem = {
   id: string
@@ -31,14 +32,10 @@ const DESTINATIONS = [
   { href: "/profile", label: "Profile", icon: User },
 ]
 
-function createConversation(title = "New Chat"): Conversation {
-  const now = new Date().toISOString()
-  return { id: generateId(), title, messages: [], mode: getDefaultChatMode(), pinned: false, createdAt: now, updatedAt: now }
-}
-
 /**
  * Ctrl+K / ⌘K quick actions. "New chat" is always the first result, so opening the palette and
- * pressing Enter does what Ctrl+K did before: create a conversation and open /chat.
+ * pressing Enter does what Ctrl+K did before: open an empty /chat. The conversation itself is
+ * created by the server when the first message is sent.
  */
 export function CommandPalette({ open, onOpenChange, returnFocusRef }: {
   open: boolean
@@ -72,7 +69,9 @@ export function CommandPalette({ open, onOpenChange, returnFocusRef }: {
 
 function PaletteBody({ onClose }: { onClose: () => void }) {
   const router = useRouter()
-  const { conversations, addConversation, setActiveId, sendMessage } = useChatStore()
+  const { conversations } = useConversationList()
+  const setDraftMode = useChatStore(s => s.setDraftMode)
+  const { send } = useChatStream()
   const [query, setQuery] = useState("")
   const [activeIndex, setActiveIndex] = useState(0)
   const listId = useId()
@@ -87,7 +86,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     const actions: PaletteItem[] = [
       {
         id: "new-chat", group: "Actions", label: "New chat", icon: MessageSquarePlus, keywords: "create start conversation",
-        run: () => { addConversation(createConversation()); router.push("/chat") },
+        run: () => { setDraftMode(getDefaultChatMode()); router.push("/chat") },
       },
       {
         id: "upload", group: "Actions", label: "Upload documents", icon: Upload, keywords: "files add import",
@@ -100,7 +99,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     }))
     const chats: PaletteItem[] = conversations.map(c => ({
       id: `chat-${c.id}`, group: "Chats", label: c.title, icon: MessageSquare,
-      run: () => { setActiveId(c.id); router.push("/chat") },
+      run: () => router.push(`/chat/${c.id}`),
     }))
 
     if (!q) return [...actions, ...destinations, ...chats.slice(0, 5)]
@@ -108,11 +107,14 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
     const text = query.trim()
     const ask: PaletteItem = {
       id: "ask", group: "Ask", label: `Ask DocuQuery: “${truncate(text, 60)}”`, icon: Sparkles,
-      // Same sequence as the chat welcome screen's suggestions: new conversation, then send.
+      // Open an empty chat and send straight away. No id is passed, so the server
+      // creates the conversation and announces it on the stream, which is what
+      // puts the id in the URL.
       run: () => {
-        addConversation(createConversation(text.slice(0, 52).trim()))
+        const mode = getDefaultChatMode()
+        setDraftMode(mode)
         router.push("/chat")
-        void new Promise(r => setTimeout(r, 0)).then(() => sendMessage(text))
+        void send(text, mode, null)
       },
     }
     return [
@@ -121,7 +123,7 @@ function PaletteBody({ onClose }: { onClose: () => void }) {
       ...chats.filter(matches).slice(0, 8),
       ask,
     ]
-  }, [query, conversations, addConversation, setActiveId, sendMessage, router])
+  }, [query, conversations, setDraftMode, send, router])
 
   const selectedIndex = Math.min(activeIndex, items.length - 1)
   const selectedItem = items[selectedIndex]

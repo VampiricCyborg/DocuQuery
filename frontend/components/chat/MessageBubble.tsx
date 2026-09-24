@@ -3,30 +3,47 @@ import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { AlertCircle, Check, Copy, FileSearch, RefreshCw, ThumbsDown, ThumbsUp } from "lucide-react"
-import type { Message } from "@/types"
+import type { ChatMode, Message } from "@/types"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { useCopy } from "@/hooks/useCopy"
-import { useChatStore } from "@/stores/chat.store"
+import { useMessageFeedback } from "@/hooks/useConversations"
+import { useChatStream } from "@/hooks/useChatStream"
 import { useSettingsStore } from "@/stores/settings.store"
 import { formatTime, cn } from "@/lib/utils"
 import { transition } from "@/lib/motion"
 import { ToolCallDisplay } from "./ToolCallDisplay"
 import { CitationList } from "./CitationCard"
 
-export function MessageBubble({ message, isLast }: { message: Message; isLast: boolean }) {
+export function MessageBubble({ message, isLast, conversationId, mode }: {
+  message: Message
+  isLast: boolean
+  /** Null only on a brand-new chat that has not been saved yet. */
+  conversationId: string | null
+  mode: ChatMode
+}) {
   const { copy, copied } = useCopy()
-  const retryLast = useChatStore(s => s.retryLast)
-  const setFeedback = useChatStore(s => s.setFeedback)
-  const activeId = useChatStore(s => s.activeId)
+  const { retry } = useChatStream()
+  const feedbackMutation = useMessageFeedback(conversationId)
   const showCitations = useSettingsStore(s => s.showCitations)
   const isUser = message.role === "user"
   const streaming = message.status === "streaming"
+  const partial = message.status === "partial"
   const hasCitations = !isUser && (message.citations?.length ?? 0) > 0
+  // Actions need a row the server knows about. While an answer is still
+  // streaming it has no id yet, so they stay hidden rather than 404.
+  const persisted = !!conversationId && !message.id.startsWith("pending-")
 
   const handleFeedback = (fb: "up" | "down") => {
-    if (!activeId) return
-    const next = message.feedback === fb ? null : fb
-    setFeedback(activeId, message.id, next)
+    if (!persisted) return
+    feedbackMutation.mutate({
+      messageId: message.id,
+      // Clicking the same thumb again clears it.
+      feedback: message.feedback === fb ? null : fb,
+    })
+  }
+
+  const handleRetry = () => {
+    if (conversationId) void retry(conversationId, mode)
   }
 
   if (isUser) {
@@ -89,7 +106,7 @@ export function MessageBubble({ message, isLast }: { message: Message; isLast: b
         )}
 
         {/* Sources are set apart from the generated text in their own bordered list */}
-        {showCitations && hasCitations && message.status === "done" && (
+        {showCitations && hasCitations && (message.status === "done" || partial) && (
           <CitationList citations={message.citations!} />
         )}
 
@@ -100,7 +117,16 @@ export function MessageBubble({ message, isLast }: { message: Message; isLast: b
           </p>
         )}
 
-        {message.status === "done" && (
+        {/* The server marks an answer partial when the browser went away while it
+            was still being written. The text is real, just unfinished. */}
+        {partial && (
+          <p className="flex items-center gap-1.5 text-caption text-fg-subtle">
+            <AlertCircle className="size-3.5" aria-hidden="true" />
+            This answer was cut short. Regenerate to get a complete one.
+          </p>
+        )}
+
+        {(message.status === "done" || partial) && persisted && (
           <div
             className={cn(
               "-ml-1.5 flex items-center gap-0.5 transition-opacity",
@@ -120,7 +146,7 @@ export function MessageBubble({ message, isLast }: { message: Message; isLast: b
               <ThumbsDown className={cn(message.feedback === "down" && "text-danger")} aria-hidden="true" />
             </ActionButton>
             {isLast && (
-              <ActionButton label="Regenerate" onClick={retryLast}>
+              <ActionButton label="Regenerate" onClick={handleRetry}>
                 <RefreshCw aria-hidden="true" />
               </ActionButton>
             )}

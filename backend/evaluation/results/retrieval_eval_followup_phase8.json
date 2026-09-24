@@ -1,0 +1,896 @@
+{
+  "environment": {
+    "captured_at": "2026-09-24T08:30:07.974473+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "python": "3.13.1",
+    "cpu_count_logical": 12,
+    "numpy": "2.2.6",
+    "cpu_count_physical": 8,
+    "total_ram_gb": 15.68,
+    "onnxruntime": "1.26.0",
+    "git_commit": "de19497",
+    "git_dirty": true
+  },
+  "run": {
+    "label": "phase8",
+    "mode": "followup",
+    "user_id": "eval-055e6b8f749602d3",
+    "slice_file": "evaluation/sets/manual.json",
+    "items": 15,
+    "top_k": 10,
+    "similarity_threshold": 0.3,
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "llm_model": "qwen/qwen3.8-27b",
+    "condense_prompt_version": "v1",
+    "relevance_level": "document",
+    "turn_1_answer": "proxy: the top retrieved passage from turn 1, truncated to 600 chars. No answer was generated, so the condenser sees grounded context rather than a written reply."
+  },
+  "provenance": {
+    "set_status": "DRAFT - not reviewed, not used to produce any reported number.",
+    "slice_description": "Two-turn exchanges where turn 2 is elliptical and meaningless alone. Measures the value of query condensing: turn-2 retrieval with the raw text vs. with a standalone rewrite.",
+    "verification": "The multi_hop and followup slices are NOT mechanically verified. Their ground-truth document assignments come from document scope and still need a human to confirm the answer is on the page claimed."
+  },
+  "metrics": {
+    "raw": {
+      "queries": 15,
+      "recall_at_1": 0.4,
+      "recall_at_3": 0.5333,
+      "recall_at_5": 0.5333,
+      "recall_at_10": 0.8
+    },
+    "model_rewrite": {
+      "queries": 15,
+      "recall_at_1": 0.9333,
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0
+    },
+    "reference_rewrite": {
+      "queries": 15,
+      "recall_at_1": 0.8667,
+      "recall_at_3": 0.9333,
+      "recall_at_5": 0.9333,
+      "recall_at_10": 0.9333
+    }
+  },
+  "rewrite_outcomes": {
+    "ok": 15
+  },
+  "rewrite_latency_ms": {
+    "p50": 194.357,
+    "p95": 1120.962,
+    "p99": 1120.962,
+    "min": 138.891,
+    "max": 1120.962,
+    "mean": 299.541,
+    "n": 15
+  },
+  "per_item": [
+    {
+      "id": "fu-01",
+      "turn_1": "What is the purpose of a policy enforcement point in a zero trust architecture?",
+      "turn_2_raw": "How does it differ from the policy engine?",
+      "model_rewrite": "How does a policy enforcement point differ from the policy engine in a zero trust architecture?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 1120.96,
+      "reference_rewrite": "How does a policy enforcement point differ from a policy engine in a zero trust architecture?",
+      "gt_manifest_id": "nist-sp-800-207",
+      "gt_filename": "NIST.SP.800-207.pdf",
+      "turn_1_top_filename": "NIST.SP.800-207.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.SP.800-207.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-02",
+      "turn_1": "What are the three cloud service models defined by NIST?",
+      "turn_2_raw": "Which of them gives the customer the least control?",
+      "model_rewrite": "Which of the three cloud service models defined by NIST gives the customer the least control?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 164.06,
+      "reference_rewrite": "Which NIST cloud service model gives the customer the least control?",
+      "gt_manifest_id": "nist-sp-800-145",
+      "gt_filename": "nistspecialpublication800-145.pdf",
+      "turn_1_top_filename": "nistspecialpublication800-145.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf"
+        ],
+        "model_rewrite": [
+          "nistspecialpublication800-145.pdf",
+          "nistspecialpublication800-145.pdf",
+          "nistspecialpublication800-145.pdf",
+          "nistspecialpublication800-145.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf",
+          "NIST.SP.800-207.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": false
+      }
+    },
+    {
+      "id": "fu-03",
+      "turn_1": "What are the phases of the incident response life cycle?",
+      "turn_2_raw": "What happens in the third one?",
+      "model_rewrite": "What happens in the third phase of the incident response life cycle?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 305.38,
+      "reference_rewrite": "What happens during the containment, eradication and recovery phase of incident response?",
+      "gt_manifest_id": "nist-sp-800-61r2",
+      "gt_filename": "NIST.SP.800-61r2.pdf",
+      "turn_1_top_filename": "NIST.SP.800-61r2.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "nistspecialpublication800-92.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-61r2.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-61r2.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-04",
+      "turn_1": "What is the difference between clearing and purging media?",
+      "turn_2_raw": "When is destruction required instead?",
+      "model_rewrite": "When is destruction required instead of clearing or purging media?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 155.39,
+      "reference_rewrite": "When is physical destruction of media required instead of clearing or purging?",
+      "gt_manifest_id": "nist-sp-800-88r1",
+      "gt_filename": "NIST.SP.800-88r1.pdf",
+      "turn_1_top_filename": "NIST.SP.800-88r1.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-190.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-05",
+      "turn_1": "What are the core functions of the Cybersecurity Framework?",
+      "turn_2_raw": "Which one covers incident response?",
+      "model_rewrite": "Which function of the Cybersecurity Framework covers incident response?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 138.89,
+      "reference_rewrite": "Which Cybersecurity Framework core function covers incident response?",
+      "gt_manifest_id": "nist-cswp-cyberframework-1-1",
+      "gt_filename": "NIST.CSWP.04162018.pdf",
+      "turn_1_top_filename": "NIST.CSWP.04162018.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-171r2.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-61r2.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-61r2.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-06",
+      "turn_1": "What are the four functions of the AI Risk Management Framework?",
+      "turn_2_raw": "What does the first one involve?",
+      "model_rewrite": "What does the first function of the AI Risk Management Framework involve?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 631.86,
+      "reference_rewrite": "What does the Govern function of the AI Risk Management Framework involve?",
+      "gt_manifest_id": "nist-ai-100-1",
+      "gt_filename": "NIST.AI.100-1.pdf",
+      "turn_1_top_filename": "NIST.AI.100-1.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.AI.100-1.pdf",
+          "nistspecialpublication800-34r1.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.AI.100-1.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-07",
+      "turn_1": "What is a container image?",
+      "turn_2_raw": "What are the main risks associated with them?",
+      "model_rewrite": "What are the main risks associated with container images?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 332.4,
+      "reference_rewrite": "What are the main security risks associated with container images?",
+      "gt_manifest_id": "nist-sp-800-190",
+      "gt_filename": "NIST.SP.800-190.pdf",
+      "turn_1_top_filename": "NIST.SP.800-190.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.AI.100-1.pdf",
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-08",
+      "turn_1": "What are the steps of the Risk Management Framework?",
+      "turn_2_raw": "Which step comes immediately after categorisation?",
+      "model_rewrite": "Which step comes immediately after categorisation in the Risk Management Framework?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 164.3,
+      "reference_rewrite": "Which Risk Management Framework step comes immediately after the categorise step?",
+      "gt_manifest_id": "nist-sp-800-37r2",
+      "gt_filename": "NIST.SP.800-37r2.pdf",
+      "turn_1_top_filename": "NIST.SP.800-37r2.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-37r2.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-09",
+      "turn_1": "What is controlled unclassified information?",
+      "turn_2_raw": "How many security requirements protect it?",
+      "model_rewrite": "How many security requirements protect Controlled Unclassified Information?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 142.86,
+      "reference_rewrite": "How many security requirements does NIST specify for protecting controlled unclassified information?",
+      "gt_manifest_id": "nist-sp-800-171r2",
+      "gt_filename": "NIST.SP.800-171r2.pdf",
+      "turn_1_top_filename": "NIST.SP.800-171r2.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-190.pdf",
+          "NIST.SP.800-190.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-10",
+      "turn_1": "What is the definition of personally identifiable information?",
+      "turn_2_raw": "What are the confidentiality impact levels for it?",
+      "model_rewrite": "What are the confidentiality impact levels for personally identifiable information?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 142.29,
+      "reference_rewrite": "What are the confidentiality impact levels for personally identifiable information?",
+      "gt_manifest_id": "nist-sp-800-122",
+      "gt_filename": "nistspecialpublication800-122.pdf",
+      "turn_1_top_filename": "NIST.SP.800-37r2.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "nistspecialpublication800-122.pdf"
+        ],
+        "model_rewrite": [
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf"
+        ],
+        "reference_rewrite": [
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-122.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-11",
+      "turn_1": "What are the practices of the Secure Software Development Framework?",
+      "turn_2_raw": "Which group of them deals with the organisation rather than the code?",
+      "model_rewrite": "Which group of practices in the Secure Software Development Framework (SSDF) deals with the organization rather than the code?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 224.17,
+      "reference_rewrite": "Which Secure Software Development Framework practice group deals with preparing the organisation rather than the code?",
+      "gt_manifest_id": "nist-sp-800-218",
+      "gt_filename": "NIST.SP.800-218.pdf",
+      "turn_1_top_filename": "NIST.SP.800-218.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-61r2.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf",
+          "NIST.SP.800-218.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-12",
+      "turn_1": "What is the purpose of a business impact analysis?",
+      "turn_2_raw": "What outputs does it produce?",
+      "model_rewrite": "What outputs does a business impact analysis produce?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 405.63,
+      "reference_rewrite": "What outputs does a business impact analysis produce?",
+      "gt_manifest_id": "nist-sp-800-34r1",
+      "gt_filename": "nistspecialpublication800-34r1.pdf",
+      "turn_1_top_filename": "NIST.SP.800-37r2.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-145.pdf",
+          "NIST.SP.800-88r1.pdf",
+          "nistspecialpublication800-122.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-61r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.CSWP.04162018.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-37r2.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": false,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-13",
+      "turn_1": "What are the authenticator assurance levels?",
+      "turn_2_raw": "What is required at the highest one?",
+      "model_rewrite": "What is required at the highest Authenticator Assurance Level (AAL)?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 156.93,
+      "reference_rewrite": "What is required at authenticator assurance level 3?",
+      "gt_manifest_id": "nist-sp-800-63-3",
+      "gt_filename": "NIST.SP.800-63-3.pdf",
+      "turn_1_top_filename": "NIST.SP.800-63-3.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "nistspecialpublication800-34r1.pdf"
+        ],
+        "model_rewrite": [
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf"
+        ],
+        "reference_rewrite": [
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-171r2.pdf",
+          "NIST.SP.800-63-3.pdf",
+          "NIST.SP.800-63-3.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-14",
+      "turn_1": "What is log management?",
+      "turn_2_raw": "What are the main challenges in doing it?",
+      "model_rewrite": "What are the main challenges in computer security log management?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 194.36,
+      "reference_rewrite": "What are the main challenges in log management?",
+      "gt_manifest_id": "nist-sp-800-92",
+      "gt_filename": "nistspecialpublication800-92.pdf",
+      "turn_1_top_filename": "nistspecialpublication800-92.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-122.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "NIST.SP.800-37r2.pdf",
+          "nistspecialpublication800-34r1.pdf",
+          "nistspecialpublication800-92.pdf"
+        ],
+        "model_rewrite": [
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "NIST.SP.800-171r2.pdf"
+        ],
+        "reference_rewrite": [
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf",
+          "nistspecialpublication800-92.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    },
+    {
+      "id": "fu-15",
+      "turn_1": "What does the Survey of Consumer Finances measure?",
+      "turn_2_raw": "How did median family net worth change in the most recent period it covers?",
+      "model_rewrite": "How did median family net worth change in the most recent period covered by the Survey of Consumer Finances?",
+      "rewrite_outcome": "ok",
+      "rewrite_latency_ms": 213.62,
+      "reference_rewrite": "How did median family net worth change between 2019 and 2022 according to the Survey of Consumer Finances?",
+      "gt_manifest_id": "frb-scf-2023",
+      "gt_filename": "frb-scf23.pdf",
+      "turn_1_top_filename": "frb-scf23.pdf",
+      "retrieved_filenames": {
+        "raw": [
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf"
+        ],
+        "model_rewrite": [
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf"
+        ],
+        "reference_rewrite": [
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf",
+          "frb-scf23.pdf"
+        ]
+      },
+      "hit_at_5": {
+        "raw": true,
+        "model_rewrite": true,
+        "reference_rewrite": true
+      }
+    }
+  ]
+}

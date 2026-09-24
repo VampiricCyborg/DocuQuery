@@ -1,27 +1,18 @@
 "use client"
-import { use, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useChatStore } from "@/stores/chat.store"
 import { ChatWindow } from "@/components/chat/ChatWindow"
 
-export default function ChatDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // Next.js 16 passes params as a Promise; client pages unwrap it with React.use().
-  const { id } = use(params)
-  const router = useRouter()
-  const conversations = useChatStore(s => s.conversations)
-  const setActiveId = useChatStore(s => s.setActiveId)
-  const known = conversations.some(conversation => conversation.id === id)
-
-  useEffect(() => {
-    // An id that isn't in this account's history (a stale link, or a chat deleted in
-    // another tab) falls back to /chat rather than showing an empty conversation.
-    if (!known) {
-      router.replace("/chat")
-      return
-    }
-    // setActiveId also switches activeMode to this conversation's mode.
-    setActiveId(id)
-  }, [id, known, router, setActiveId])
-
+/**
+ * An existing conversation.
+ *
+ * Renders the same component as /chat and reads nothing from `params`.
+ * ChatWindow takes the conversation id from `usePathname()` instead, so that a
+ * new chat can adopt its server id mid-stream via `window.history.replaceState`
+ * -- which changes the URL without a route transition, and therefore without
+ * unmounting the answer being streamed. Both routes render the same tree, so it
+ * does not matter which one the browser arrived through.
+ *
+ * `params` is a Promise in Next.js 16; nothing here needs to await it.
+ */
+export default function ChatDetailPage() {
   return <ChatWindow />
 }

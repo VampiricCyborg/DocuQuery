@@ -13,6 +13,7 @@ from app.api import (
     chat_router,
     auth_router,
     retrieve_router,
+    conversations_router,
 )
 
 settings = get_settings()
@@ -68,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(chat_router, tags=["Chat"])
     app.include_router(auth_router, tags=["Auth"])
     app.include_router(retrieve_router, tags=["Retrieval"])
+    app.include_router(conversations_router)
 
     return app
 

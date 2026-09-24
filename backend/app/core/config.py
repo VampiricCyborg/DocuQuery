@@ -61,6 +61,24 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
 
+    # Conversation memory (Phase 8)
+    # How many prior turns (one turn = a user message and the assistant reply to it)
+    # are replayed to the provider. Older turns are dropped first.
+    chat_history_turns: int = 6
+    # History gets its own budget, deliberately separate from llm_max_context_tokens.
+    # Sharing one budget would let a long conversation crowd out retrieved passages,
+    # which is the opposite of what a document assistant should do under pressure.
+    chat_history_max_tokens: int = 1000
+    # Query condensing: rewrite an elliptical follow-up into a standalone search query.
+    chat_query_rewrite: bool = True
+    chat_query_rewrite_max_tokens: int = 80
+    # Kept well under llm_timeout -- condensing sits in front of retrieval, so its
+    # timeout is added to every follow-up's time-to-first-token. On expiry the raw
+    # message is used instead, which is a worse query but not a failed request.
+    chat_query_rewrite_timeout: float = 6.0
+    # Upper bound on the one-time localStorage import. Mirrored in the request schema.
+    chat_import_max_conversations: int = 200
+
     # Authentication. Set a strong value in Railway/Vercel environments.
     auth_secret: str = DEV_AUTH_SECRET
     auth_cookie_name: str = "docuquery_session"

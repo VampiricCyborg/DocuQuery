@@ -65,9 +65,41 @@ async def test_chat_succeeds_with_valid_session_cookie(monkeypatch):
         yield mock_db
 
     class FakeGenerator:
-        async def generate(self, message, retrieval_result, mode):
+        # `provider` is what the query condenser reaches for. LLM mode never
+        # condenses, but the attribute has to exist for the route to import cleanly.
+        provider = object()
+
+        async def generate(self, message, retrieval_result, mode, history=None):
             return SimpleNamespace(answer="ok", citations=[], model="test-model")
 
+    # Conversation persistence is stubbed out rather than mocked through the
+    # AsyncMock session: this test is about the auth-and-routing path, and it runs
+    # in the unit tier where there is no database. The real persistence behaviour
+    # is covered against PostgreSQL in tests/test_integration_conversations.py.
+    conversation = SimpleNamespace(id="conv-1", title="New Chat", mode="llm")
+
+    async def fake_create_conversation(db, user_id, **kwargs):
+        return conversation
+
+    async def fake_append_message(db, conv, **kwargs):
+        return SimpleNamespace(id="msg-1")
+
+    async def fake_load_history(db, conversation_id, **kwargs):
+        return []
+
+    async def fake_save_assistant(conversation_id, **kwargs):
+        return None
+
+    monkeypatch.setattr(
+        "app.api.chat.conversation_service.create_conversation", fake_create_conversation
+    )
+    monkeypatch.setattr(
+        "app.api.chat.conversation_service.append_message", fake_append_message
+    )
+    monkeypatch.setattr(
+        "app.api.chat.conversation_service.load_history", fake_load_history
+    )
+    monkeypatch.setattr("app.api.chat._save_assistant_message", fake_save_assistant)
     monkeypatch.setattr("app.api.chat.get_response_generator", lambda: FakeGenerator())
     monkeypatch.setattr(
         "app.api.chat.get_settings",
@@ -86,7 +118,11 @@ async def test_chat_succeeds_with_valid_session_cookie(monkeypatch):
         app.dependency_overrides.pop(get_db, None)
 
     assert response.status_code == 200
-    assert response.json()["answer"] == "ok"
+    body = response.json()
+    assert body["answer"] == "ok"
+    # The reply now names the conversation it belongs to, so the client can keep
+    # streaming into the same thread.
+    assert body["conversation_id"] == "conv-1"
 
 
 @pytest.mark.asyncio

@@ -40,8 +40,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     try {
       user = await authRequest<User>("/auth/me")
     } catch { /* no valid session */ }
-    // A restored session keeps chats saved before storage became per-user (see bindChatStoreToUser).
-    await setClientStateOwner(user?.id ?? null, { adoptLegacyChats: true })
+    await setClientStateOwner(user?.id ?? null)
     set({ user, isAuthenticated: !!user, isHydrated: true })
   },
   login: async (email, password) => {

@@ -9,7 +9,7 @@ from typing import AsyncGenerator
 import anthropic
 from anthropic import AsyncAnthropic, APIConnectionError, APIStatusError, RateLimitError as AnthropicRateLimitError
 
-from app.llm.providers.base import BaseLLMProvider
+from app.llm.providers.base import BaseLLMProvider, build_anthropic_messages
 from app.llm.models import LLMRequest, LLMResponse
 from app.llm.exceptions import (
     ProviderUnavailableError,
@@ -32,7 +32,7 @@ class AnthropicProvider(BaseLLMProvider):
             response = await self._client.messages.create(
                 model=request.model,
                 system=request.system_prompt,
-                messages=[{"role": "user", "content": f"{request.context}\n\nQuestion: {request.user_message}"}],
+                messages=build_anthropic_messages(request),
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
             )
@@ -69,7 +69,7 @@ class AnthropicProvider(BaseLLMProvider):
             async with self._client.messages.stream(
                 model=request.model,
                 system=request.system_prompt,
-                messages=[{"role": "user", "content": f"{request.context}\n\nQuestion: {request.user_message}"}],
+                messages=build_anthropic_messages(request),
                 temperature=request.temperature,
                 max_tokens=request.max_tokens,
             ) as stream:

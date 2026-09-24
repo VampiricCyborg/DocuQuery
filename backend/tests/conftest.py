@@ -10,16 +10,18 @@ Integration tests are opt-in via TEST_DATABASE_URL. When it is unset every
 integration test is skipped, so `pytest -q` on a laptop with no database behaves
 exactly as it did before. CI sets it to a pgvector/pgvector:pg16 service container.
 
-    # local
-    docker run -d --name docuquery-test-db -p 5433:5432 \
-        -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=docuquery_test \
-        pgvector/pgvector:pg16
-    export TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5433/docuquery_test
+    # local -- port 5434, not 5433: the dev stack's docker compose already binds
+    # 5433, and the fixtures below TRUNCATE whatever they are pointed at.
+    docker run -d --name docuquery-test-db -p 5434:5432 \
+        -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+        -e POSTGRES_DB=docuquery_test pgvector/pgvector:pg16
+    export TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5434/docuquery_test
     pytest -q -m integration
 """
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
@@ -31,15 +33,19 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine,
+)
 from sqlalchemy.pool import NullPool
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 # Tables emptied between integration tests. Ordering is irrelevant because the
-# TRUNCATE is a single statement with CASCADE, but document_chunks is listed first
-# to make the dependency direction obvious to a reader.
-_TRUNCATE_TABLES = ("document_chunks", "documents", "users")
+# TRUNCATE is a single statement with CASCADE, but dependents are listed first to
+# make the direction obvious to a reader. `messages` and `conversations` would be
+# reached anyway through users' CASCADE; naming them keeps the list honest about
+# what the fixture empties.
+_TRUNCATE_TABLES = ("document_chunks", "documents", "messages", "conversations", "users")
 
 # Alembic's env.py reads the app Settings, which refuse to build without AUTH_SECRET
 # whenever DEBUG is false. The migration subprocess therefore needs one of its own;
@@ -101,34 +107,64 @@ def migrated_database(database_url: str) -> str:
 
 
 @pytest_asyncio.fixture
-async def db_session(migrated_database: str) -> AsyncGenerator[AsyncSession, None]:
-    """A session against the migrated test database, with the tables emptied first."""
+async def test_engine(migrated_database: str) -> AsyncGenerator[AsyncEngine, None]:
+    """
+    An engine on the migrated test database, with the tables emptied first.
+
+    Separate from `db_session` because application code that opens its own session
+    -- /chat saving an assistant message after the request session has closed --
+    needs the engine itself to build a sessionmaker from. `db_session.get_bind()`
+    is not that: on an AsyncSession it returns the *sync* Engine proxy, which
+    `async_sessionmaker` rejects.
+    """
     # NullPool: each test gets its own connections and disposes of them, rather than
     # leaving pooled ones open against a container that the next test truncates.
     engine = create_async_engine(migrated_database, poolclass=NullPool)
-    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
     async with engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {', '.join(_TRUNCATE_TABLES)} RESTART IDENTITY CASCADE"))
     try:
-        async with sessionmaker() as session:
-            yield session
+        yield engine
     finally:
         await engine.dispose()
 
 
 @pytest_asyncio.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def db_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """A session against the migrated, emptied test database."""
+    sessionmaker = async_sessionmaker(test_engine, expire_on_commit=False)
+    async with sessionmaker() as session:
+        yield session
+
+
+@pytest_asyncio.fixture
+async def client(
+    db_session: AsyncSession, test_engine: AsyncEngine, monkeypatch: pytest.MonkeyPatch
+) -> AsyncGenerator[AsyncClient, None]:
     """
     An HTTP client bound to the real test database.
 
     `get_db` is overridden to hand every request the one session the test also holds,
     so a row the test writes is visible to the request and vice versa.
+
+    `app.api.chat.AsyncSessionLocal` is redirected at the same engine. Overriding
+    `get_db` is not enough on its own: /chat saves the assistant message from the
+    streaming generator's `finally`, where the request-scoped session is already
+    closed, so it opens one of its own from the sessionmaker. Left alone that
+    sessionmaker points at the *application's* DATABASE_URL, and every assistant
+    message an integration test provoked would be written to the developer's own
+    database instead of the disposable one -- invisible to the assertions here,
+    and quietly polluting a database this suite was never pointed at.
     """
     from app.api.dependencies import get_db
     from app.main import app
 
     async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
+
+    monkeypatch.setattr(
+        "app.api.chat.AsyncSessionLocal",
+        async_sessionmaker(test_engine, expire_on_commit=False),
+    )
 
     app.dependency_overrides[get_db] = _override_get_db
     try:
@@ -138,6 +174,44 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
             yield http_client
     finally:
         app.dependency_overrides.pop(get_db, None)
+
+
+@pytest_asyncio.fixture
+async def live_server(client: AsyncClient) -> AsyncGenerator[str, None]:
+    """
+    The app on a real TCP port, for the one thing ASGITransport cannot do.
+
+    httpx's ASGITransport buffers the entire response body before yielding a
+    single line, so under it a streaming endpoint always runs to completion and a
+    client cannot disconnect mid-answer. Testing the partial-save path needs a
+    socket that can actually be closed early.
+
+    Depends on `client` for its side effects, not its value: that fixture installs
+    the `get_db` override and redirects `AsyncSessionLocal`, and uvicorn runs in
+    this same process and event loop, so both apply to requests it serves.
+
+    `lifespan="off"` skips the app's startup hook, which eagerly loads the ONNX
+    embedding model. Nothing here embeds anything, and loading it would cost time
+    and a few hundred MB per test run.
+    """
+    import uvicorn
+
+    from app.main import app
+
+    config = uvicorn.Config(app, host="127.0.0.1", port=0, log_level="warning", lifespan="off")
+    server = uvicorn.Server(config)
+    task = asyncio.create_task(server.serve())
+
+    # port=0 means the OS picks one; it is only knowable after the socket is bound.
+    while not server.started:
+        await asyncio.sleep(0.02)
+    port = server.servers[0].sockets[0].getsockname()[1]
+
+    try:
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        server.should_exit = True
+        await task
 
 
 @dataclass
@@ -178,6 +252,60 @@ async def make_user(db_session: AsyncSession):
             password=password,
             cookies={get_settings().auth_cookie_name: create_session(user.id)},
         )
+
+    return _make
+
+
+@pytest_asyncio.fixture
+async def make_conversation(db_session: AsyncSession):
+    """
+    Factory for a conversation owned by `user_id`, optionally pre-filled with turns.
+
+    `turns` is a list of (user_text, assistant_text) pairs, written in order with
+    increasing timestamps so that `ORDER BY created_at` reproduces the thread. The
+    explicit spacing matters: rows inserted in one transaction can otherwise share
+    a timestamp to the microsecond, and the history loader would then be asserting
+    against an arbitrary order.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from app.database.models import Conversation, Message
+
+    async def _make(
+        user_id: str,
+        *,
+        title: str = "New Chat",
+        mode: str = "docuquery",
+        pinned: bool = False,
+        turns: list[tuple[str, str]] | None = None,
+    ) -> Conversation:
+        base = datetime.now(timezone.utc) - timedelta(hours=1)
+        conversation = Conversation(
+            user_id=user_id, title=title, mode=mode, pinned=pinned,
+            created_at=base, updated_at=base,
+        )
+        db_session.add(conversation)
+        await db_session.flush()
+
+        for index, (question, answer) in enumerate(turns or []):
+            db_session.add(
+                Message(
+                    conversation_id=conversation.id, role="user", content=question,
+                    status="complete", mode=mode,
+                    created_at=base + timedelta(seconds=index * 2),
+                )
+            )
+            db_session.add(
+                Message(
+                    conversation_id=conversation.id, role="assistant", content=answer,
+                    status="complete", mode=mode,
+                    created_at=base + timedelta(seconds=index * 2 + 1),
+                )
+            )
+
+        await db_session.commit()
+        await db_session.refresh(conversation)
+        return conversation
 
     return _make
 

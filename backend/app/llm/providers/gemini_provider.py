@@ -9,7 +9,7 @@ from typing import AsyncGenerator
 import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError, ResourceExhausted, DeadlineExceeded
 
-from app.llm.providers.base import BaseLLMProvider
+from app.llm.providers.base import BaseLLMProvider, build_user_turn
 from app.llm.models import LLMRequest, LLMResponse
 from app.llm.exceptions import (
     ProviderUnavailableError,
@@ -26,23 +26,39 @@ class GeminiProvider(BaseLLMProvider):
     def __init__(self, api_key: str) -> None:
         genai.configure(api_key=api_key)
 
-    def _get_model(self, model_name: str, temperature: float, max_tokens: int):
+    def _get_model(self, request: LLMRequest):
+        # system_instruction is a first-class parameter in google-generativeai
+        # 0.8.x. Passing it here rather than gluing it onto the prompt text is what
+        # lets `contents` below be a real multi-turn list instead of one blob.
         return genai.GenerativeModel(
-            model_name=model_name,
+            model_name=request.model,
+            system_instruction=request.system_prompt,
             generation_config=genai.GenerationConfig(
-                temperature=temperature,
-                max_output_tokens=max_tokens,
+                temperature=request.temperature,
+                max_output_tokens=request.max_tokens,
             ),
         )
 
-    def _build_prompt(self, request: LLMRequest) -> str:
-        return f"{request.system_prompt}\n\n{request.context}\n\nQuestion: {request.user_message}"
+    @staticmethod
+    def _build_contents(request: LLMRequest) -> list[dict]:
+        """
+        Prior turns plus the live user turn, in Gemini's content format.
+
+        Gemini names the assistant role "model", so the history roles are mapped
+        rather than passed through.
+        """
+        contents = [
+            {"role": "model" if turn.role == "assistant" else "user", "parts": [turn.content]}
+            for turn in request.history
+        ]
+        contents.append({"role": "user", "parts": [build_user_turn(request)]})
+        return contents
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
         t0 = time.monotonic()
-        model = self._get_model(request.model, request.temperature, request.max_tokens)
+        model = self._get_model(request)
         try:
-            response = await model.generate_content_async(self._build_prompt(request))
+            response = await model.generate_content_async(self._build_contents(request))
         except ResourceExhausted as exc:
             raise RateLimitError(str(exc)) from exc
         except DeadlineExceeded as exc:
@@ -58,10 +74,10 @@ class GeminiProvider(BaseLLMProvider):
 
     async def stream(self, request: LLMRequest) -> AsyncGenerator[str, None]:
         t0 = time.monotonic()
-        model = self._get_model(request.model, request.temperature, request.max_tokens)
+        model = self._get_model(request)
         try:
             async for chunk in await model.generate_content_async(
-                self._build_prompt(request), stream=True
+                self._build_contents(request), stream=True
             ):
                 if chunk.text:
                     yield chunk.text

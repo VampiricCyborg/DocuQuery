@@ -4,15 +4,21 @@ import * as Dialog from "@radix-ui/react-dialog"
 import { motion } from "framer-motion"
 import { Plus, Search, Pin, Trash2, MessageSquare, ChevronLeft, ChevronRight, Pencil, Check, X, Zap } from "lucide-react"
 import { useChatStore } from "@/stores/chat.store"
+import {
+  useActiveConversationId,
+  useConversationList,
+  useDeleteConversation,
+  usePatchConversation,
+} from "@/hooks/useConversations"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Tooltip } from "@/components/ui/Tooltip"
 import { Logo } from "@/components/brand/Logo"
-import { cn, truncate, generateId } from "@/lib/utils"
+import { cn, truncate } from "@/lib/utils"
 import { transition } from "@/lib/motion"
 import { UserMenu } from "./UserMenu"
 import { NavLinks } from "./NavLinks"
-import type { Conversation } from "@/types"
+import type { ConversationSummary } from "@/types"
 import toast from "react-hot-toast"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -45,23 +51,19 @@ const GROUP_ORDER: Group[] = ["pinned", "today", "yesterday", "week", "older"]
 /** Opens the command palette; `returnFocusTo` is refocused when the palette closes. */
 type OpenCommandPalette = (returnFocusTo?: HTMLElement | null) => void
 
+/**
+ * Opens an empty chat.
+ *
+ * No row is created here. The conversation is created server-side by the first
+ * message, which keeps "New Chat" rows nobody ever typed into out of the
+ * sidebar -- the old store wrote one on every click of this button.
+ */
 function useNewConversation() {
-  const addConversation = useChatStore(s => s.addConversation)
+  const setDraftMode = useChatStore(s => s.setDraftMode)
   const router = useRouter()
   return () => {
-    const conv: Conversation = {
-      id: generateId(),
-      title: "New Chat",
-      messages: [],
-      mode: getDefaultChatMode(),
-      pinned: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-    addConversation(conv)
-    // Selecting a conversation only marks it active; open it as well, or the new chat
-    // stays invisible while the current page (dashboard, files…) remains on screen.
-    router.push(`/chat/${conv.id}`)
+    setDraftMode(getDefaultChatMode())
+    router.push("/chat")
   }
 }
 
@@ -179,7 +181,10 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
   onNavigate?: () => void
   onOpenCommandPalette: OpenCommandPalette
 }) {
-  const { conversations, activeId, setActiveId, deleteConversation, togglePin } = useChatStore()
+  const { conversations, isLoading } = useConversationList()
+  const activeId = useActiveConversationId()
+  const patchConversation = usePatchConversation()
+  const deleteConversation = useDeleteConversation()
   const handleNew = useNewConversation()
   const [search, setSearch] = useState("")
   const groupIdPrefix = useId()
@@ -195,7 +200,7 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
 
   // Partition into groups
   const grouped = useMemo(() => {
-    const map: Partial<Record<Group, Conversation[]>> = {}
+    const map: Partial<Record<Group, ConversationSummary[]>> = {}
     for (const c of filtered) {
       const key: Group = c.pinned ? "pinned" : getGroup(c.updatedAt)
       if (!map[key]) map[key] = []
@@ -210,14 +215,20 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
   }
 
   const select = (id: string) => {
-    setActiveId(id)
     onNavigate?.()
     router.push(`/chat/${id}`)
   }
 
   const handleDelete = (id: string) => {
-    deleteConversation(id)
-    toast.success("Chat deleted")
+    deleteConversation.mutate(id, {
+      onSuccess: () => {
+        toast.success("Chat deleted")
+        // Deleting the chat you are reading would otherwise leave the page
+        // showing a thread that no longer exists.
+        if (id === activeId) router.push("/chat")
+      },
+      onError: () => toast.error("Could not delete that chat."),
+    })
   }
 
   const openQuickActions = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -276,7 +287,9 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
 
       {/* Conversations */}
       <div className="flex-1 overflow-y-auto px-2 pb-2">
-        {conversations.length === 0 ? (
+        {isLoading && conversations.length === 0 ? (
+          <p className="px-2 py-4 text-center text-caption text-fg-subtle">Loading chats…</p>
+        ) : conversations.length === 0 ? (
           <div className="px-2 py-8 text-center text-caption text-fg-subtle">
             <p>No chats yet.</p>
             <button
@@ -307,7 +320,8 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
                       active={c.id === activeId}
                       onSelect={() => select(c.id)}
                       onDelete={() => handleDelete(c.id)}
-                      onPin={() => togglePin(c.id)}
+                      onPin={() => patchConversation.mutate({ id: c.id, pinned: !c.pinned })}
+                      onRename={title => patchConversation.mutate({ id: c.id, title })}
                     />
                   ))}
                 </div>
@@ -325,15 +339,15 @@ function SidebarPanel({ headerAction, onNavigate, onOpenCommandPalette }: {
 // ─── ConvItem ─────────────────────────────────────────────────────────────────
 
 function ConvItem({
-  conv, active, onSelect, onDelete, onPin,
+  conv, active, onSelect, onDelete, onPin, onRename,
 }: {
-  conv: Conversation
+  conv: ConversationSummary
   active: boolean
   onSelect: () => void
   onDelete: () => void
   onPin: () => void
+  onRename: (title: string) => void
 }) {
-  const { updateTitle } = useChatStore()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(conv.title)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -352,7 +366,7 @@ function ConvItem({
   const commitRename = () => {
     const trimmed = draft.trim()
     if (trimmed && trimmed !== conv.title) {
-      updateTitle(conv.id, trimmed)
+      onRename(trimmed)
     }
     finishEditing()
   }

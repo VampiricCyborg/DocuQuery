@@ -1,18 +1,17 @@
 "use client"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { QueryClientProvider } from "@tanstack/react-query"
 import { MotionConfig } from "framer-motion"
 import { ThemeProvider } from "next-themes"
 import { Toaster } from "react-hot-toast"
-import { useState } from "react"
 import { useEffect } from "react"
 import { useAuthStore } from "@/stores/auth.store"
+import { getQueryClient } from "@/lib/queryClient"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const hydrateAuth = useAuthStore(s => s.hydrate)
   useEffect(() => { void hydrateAuth() }, [hydrateAuth])
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
-  }))
+  // Shared with stores/session.ts, which clears it when the signed-in user changes.
+  const queryClient = getQueryClient()
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
