@@ -205,7 +205,7 @@ async def test_condensing_is_skipped_without_history(condense_settings):
 
 
 async def test_condensing_can_be_turned_off(condense_settings):
-    condense_settings(chat_condense_enabled=False)
+    condense_settings(chat_query_rewrite=False)
     provider = _Provider(answer="rewrite")
 
     result = await condense_query(provider, "raw message", HISTORY)
@@ -215,7 +215,7 @@ async def test_condensing_can_be_turned_off(condense_settings):
 
 
 async def test_condensing_falls_back_to_the_raw_message_on_timeout(condense_settings):
-    condense_settings(chat_condense_timeout=0.05)
+    condense_settings(chat_query_rewrite_timeout=0.05)
     provider = _Provider(answer="too late", delay=5)
 
     result = await condense_query(provider, "How does it differ?", HISTORY)

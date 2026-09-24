@@ -601,8 +601,8 @@ async def test_condenser_timeout_falls_back_to_the_raw_message(
     stub_chat(
         provider,
         llm_streaming_enabled=False,
-        chat_condense_timeout=0.05,
-        chat_condense_enabled=True,
+        chat_query_rewrite_timeout=0.05,
+        chat_query_rewrite=True,
     )
 
     retrieved: list[str] = []
@@ -656,7 +656,7 @@ async def test_condensed_query_is_used_for_retrieval_but_not_for_the_answer(
 
     # `reply` is what the condenser's generate() returns; `tokens` is the answer.
     provider = RecordingProvider(reply=rewrite, tokens=["grounded answer"])
-    stub_chat(provider, llm_streaming_enabled=True, chat_condense_enabled=True)
+    stub_chat(provider, llm_streaming_enabled=True, chat_query_rewrite=True)
 
     retrieved: list[str] = []
     monkeypatch.setattr(

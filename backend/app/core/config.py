@@ -70,12 +70,12 @@ class Settings(BaseSettings):
     # which is the opposite of what a document assistant should do under pressure.
     chat_history_max_tokens: int = 1000
     # Query condensing: rewrite an elliptical follow-up into a standalone search query.
-    chat_condense_enabled: bool = True
-    chat_condense_max_tokens: int = 80
+    chat_query_rewrite: bool = True
+    chat_query_rewrite_max_tokens: int = 80
     # Kept well under llm_timeout -- condensing sits in front of retrieval, so its
     # timeout is added to every follow-up's time-to-first-token. On expiry the raw
     # message is used instead, which is a worse query but not a failed request.
-    chat_condense_timeout: float = 6.0
+    chat_query_rewrite_timeout: float = 6.0
     # Upper bound on the one-time localStorage import. Mirrored in the request schema.
     chat_import_max_conversations: int = 200
 

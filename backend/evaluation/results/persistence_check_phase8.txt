@@ -1,0 +1,117 @@
+------------------------------------------------------------
+  1. Sign up in browser A
+------------------------------------------------------------
+{
+    "id": "c07204e6-aefc-412d-a41c-6bc1a3774aca",
+    "name": "Persistence Check",
+    "email": "persistence-1790239473@example.invalid",
+    "createdAt": "2026-09-24T08:44:33.596132Z"
+}
+cookie jar A now holds: 1 session cookie
+------------------------------------------------------------
+  2. Sign in as the SAME user in browser B (a separate cookie jar)
+------------------------------------------------------------
+{
+    "id": "c07204e6-aefc-412d-a41c-6bc1a3774aca",
+    "name": "Persistence Check",
+    "email": "persistence-1790239473@example.invalid",
+    "createdAt": "2026-09-24T08:44:33.596132Z"
+}
+jars A and B share no state. Both cookies encode the same user id, so only
+the signature at the tail distinguishes them -- they are separate sessions:
+  A session cookie: ...iDRDzw1yvXdcAOx4
+  B session cookie: ...TLu-I7R934x7RrrE
+------------------------------------------------------------
+  3. Browser B sees no chats yet
+------------------------------------------------------------
+{
+    "items": [],
+    "total": 0,
+    "limit": 30,
+    "offset": 0,
+    "has_more": false
+}
+------------------------------------------------------------
+  4. Browser A sends a message with no conversation_id
+------------------------------------------------------------
+POST /chat  {"message": "What is a policy enforcement point?", "mode": "llm"}
+
+--- first frames of the SSE stream ---
+event: conversation
+data: {"id": "b632b811-67ac-4e5a-b980-6d3864cf751a"}
+
+event: token
+data: "A"
+
+  ...
+
+server created conversation: b632b811-67ac-4e5a-b980-6d3864cf751a
+------------------------------------------------------------
+  5. Browser B — never told about that conversation — lists its chats
+------------------------------------------------------------
+{
+    "items": [
+        {
+            "id": "b632b811-67ac-4e5a-b980-6d3864cf751a",
+            "title": "What is a policy enforcement point?",
+            "mode": "llm",
+            "pinned": false,
+            "created_at": "2026-09-24T08:44:34.758230Z",
+            "updated_at": "2026-09-24T08:44:37.638317Z"
+        }
+    ],
+    "total": 1,
+    "limit": 30,
+    "offset": 0,
+    "has_more": false
+}
+------------------------------------------------------------
+  6. Browser B opens the conversation and reads the transcript
+------------------------------------------------------------
+{
+  "id": "b632b811-67ac-4e5a-b980-6d3864cf751a",
+  "title": "What is a policy enforcement point?",
+  "mode": "llm",
+  "pinned": false
+}
+messages:
+  [user      complete] What is a policy enforcement point?
+  [assistant complete] A **Policy Enforcement Point (PEP)** is a component within a securi...
+------------------------------------------------------------
+  7. Browser B logs out
+------------------------------------------------------------
+  POST /auth/logout -> HTTP 204
+  GET /conversations with the logged-out jar -> HTTP 401
+------------------------------------------------------------
+  8. Log back in (jar C) and list again
+------------------------------------------------------------
+  C session cookie: ...ZJc0_EttnTEtRUec  (a newly minted session)
+
+{
+    "items": [
+        {
+            "id": "b632b811-67ac-4e5a-b980-6d3864cf751a",
+            "title": "What is a policy enforcement point?",
+            "mode": "llm",
+            "pinned": false,
+            "created_at": "2026-09-24T08:44:34.758230Z",
+            "updated_at": "2026-09-24T08:44:37.638317Z"
+        }
+    ],
+    "total": 1,
+    "limit": 30,
+    "offset": 0,
+    "has_more": false
+}
+------------------------------------------------------------
+  9. And the transcript is still there
+------------------------------------------------------------
+messages:
+  [user      complete] What is a policy enforcement point?
+  [assistant complete] A **Policy Enforcement Point (PEP)** is a component within a securi...
+------------------------------------------------------------
+  10. A different account cannot see it
+------------------------------------------------------------
+  their GET /conversations         -> total=0
+  their GET /conversations/b632b811... -> HTTP 404  (404, not 403)
+------------------------------------------------------------

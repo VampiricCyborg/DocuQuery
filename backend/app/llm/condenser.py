@@ -87,7 +87,7 @@ async def condense_query(
     """
     settings = get_settings()
 
-    if not history or not settings.chat_condense_enabled:
+    if not history or not settings.chat_query_rewrite:
         return CondenseResult(query=message, rewritten=False, latency_ms=0.0, outcome="skipped")
 
     request = LLMRequest(
@@ -98,13 +98,13 @@ async def condense_query(
         # Deterministic: the same follow-up should condense the same way twice, or
         # an evaluation of this step measures sampling noise.
         temperature=0.0,
-        max_tokens=settings.chat_condense_max_tokens,
+        max_tokens=settings.chat_query_rewrite_max_tokens,
     )
 
     t0 = time.perf_counter()
     try:
         response = await asyncio.wait_for(
-            provider.generate(request), timeout=settings.chat_condense_timeout
+            provider.generate(request), timeout=settings.chat_query_rewrite_timeout
         )
     except (asyncio.TimeoutError, TimeoutError):
         elapsed = (time.perf_counter() - t0) * 1000
