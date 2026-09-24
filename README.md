@@ -11,9 +11,13 @@
 Upload your documents. DocuQuery reads them, indexes them, and answers questions with the
 exact page and passage the answer came from — no more skimming a 40-page report for one number.
 
-[**Live demo**](#-see-it-work) · [**Quick start**](#-quick-start) · [**Features**](#-features) · [**API reference**](#-api-reference) · [**Roadmap**](#-roadmap)
+### [▶ Try it live at docuqueryvc.vercel.app](https://docuqueryvc.vercel.app)
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)
+<sub>Frontend on Vercel · API at [`docuqueryprod.up.railway.app`](https://docuqueryprod.up.railway.app/health) on Railway · sign up with any email to upload your own documents</sub>
+
+[**See it work**](#-see-it-work) · [**Quick start**](#-quick-start) · [**Features**](#-features) · [**API reference**](#-api-reference) · [**Roadmap**](#-roadmap)
+
+[![CI](https://github.com/VampiricCyborg/DocuQuery/actions/workflows/ci.yml/badge.svg)](https://github.com/VampiricCyborg/DocuQuery/actions/workflows/ci.yml)
 ![Version](https://img.shields.io/badge/version-0.1.0-blue?style=flat-square)
 ![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=flat-square&logo=next.js)
 ![React](https://img.shields.io/badge/React-19.2-61dafb?style=flat-square&logo=react)
@@ -47,6 +51,10 @@ and hands the model only that — then shows you exactly where the answer came f
 <img src="docs/screenshots/demo.gif" alt="A question is typed, DocuQuery searches the uploaded documents, streams back an answer, then shows the cited source" width="760">
 <br/>
 <sub>One question, start to finish — typed, searched, answered, cited. No cuts.</sub>
+
+<br/>
+
+<sub>Rather do it yourself? <a href="https://docuqueryvc.vercel.app">Open the live app</a> and upload a document.</sub>
 </div>
 
 <br/>
@@ -235,6 +243,7 @@ Every request to `POST /chat` carries a `mode`:
 | `GET` | `/documents` | List all documents with processing status |
 | `GET` | `/documents/{id}` | Get a single document |
 | `GET` | `/documents/{id}/chunks` | Inspect a document's indexed chunks |
+| `GET` | `/documents/{id}/debug` | Indexing diagnostics — recorded vs. actual chunk count, and how many carry an embedding |
 | `DELETE` | `/documents/{id}` | Delete a document and all its chunks |
 | `POST` | `/retrieve` | Vector similarity search — chunks + context, no LLM call |
 | `POST` | `/chat` | Full RAG pipeline — streams an answer with citations |
@@ -319,7 +328,12 @@ cd frontend && npx tsc --noEmit && npm run lint && npm run build
 ```
 
 The backend suite covers parsing, chunking, retrieval scoring, citations, prompt construction,
-provider abstraction, streaming, password hashing, and session validation.
+provider abstraction, streaming, password hashing, and session validation. It needs no database
+and no API keys — the database and the embedding service are mocked.
+
+Every push to `main` and every pull request runs the same commands on GitHub Actions
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — that is what the CI badge at the top
+reports.
 
 ---
 

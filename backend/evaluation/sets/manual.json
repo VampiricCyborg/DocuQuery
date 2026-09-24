@@ -1,0 +1,440 @@
+{
+  "status": "DRAFT - not reviewed, not used to produce any reported number.",
+  "description": "Hand-written evaluation slices covering what the LLM-generated set cannot: questions with no answer in the corpus, questions needing two documents, and two-turn exchanges whose second turn is not a standalone query.",
+  "corpus": "corpus/manifest.json",
+  "ground_truth_convention": "Documents are referenced by their manifest `id`, never by database document_id, because the latter is regenerated on every ingest.",
+  "caveats": [
+    "Written from document titles and scope, not by reading every page. Each item needs a human to confirm the answer really is where it is claimed to be, or really is absent.",
+    "The unanswerable slice was the fragile one and this proved correct: 4 of 15 draft items asked about frameworks the NIST and Federal Reserve documents genuinely discuss. Those were replaced and the slice re-verified; see `verification`.",
+    "Multi-hop items assert that two documents are needed. A single document may in practice answer some of them, which would make those items easy rather than wrong."
+  ],
+  "verification": {
+    "status": "verified",
+    "method": "Full text of all 27 corpus PDFs extracted with PyMuPDF and searched for each item's distinguishing terms, case-insensitively and on word boundaries. Word boundaries matter: a substring search reported 903 hits for 'Rust', every one of them inside 'trust'.",
+    "result": "4 of the original 15 were contaminated and were replaced (see each item's why_absent): PCI DSS, HIPAA, Basel III and NBER are all genuinely discussed in the corpus. The remaining 11 verify absent.",
+    "not_verified": "The multi_hop and followup slices are NOT mechanically verified. Their ground-truth document assignments come from document scope and still need a human to confirm the answer is on the page claimed."
+  },
+  "slices": {
+    "unanswerable": {
+      "description": "The corpus does not contain the answer. Measures whether retrieval abstains or returns confident-looking but irrelevant chunks above the similarity threshold.",
+      "expected": "no relevant chunk; ideally nothing above threshold",
+      "items": [
+        {
+          "id": "una-01",
+          "query": "What is the maximum response time an organisation has under GDPR Article 12 to answer a data subject access request?",
+          "why_absent": "EU data-protection law; the corpus is U.S. federal guidance and contains no GDPR article text."
+        },
+        {
+          "id": "una-02",
+          "query": "Under the EU's Digital Operational Resilience Act, how often must a financial entity carry out threat-led penetration testing?",
+          "why_absent": "EU financial-sector regulation. Replaced the original PCI DSS question: 'PCI DSS' and 'Payment Card Industry' occur 18 times across SP 800-92, 800-146, 800-209 and 800-218 as a compliance driver, which made it a poor probe for absence."
+        },
+        {
+          "id": "una-03",
+          "query": "What is the minimum observation window for a SOC 2 Type II examination?",
+          "why_absent": "AICPA attestation standard; absent from this corpus."
+        },
+        {
+          "id": "una-04",
+          "query": "Which risk tier does the EU AI Act assign to remote biometric identification in publicly accessible spaces?",
+          "why_absent": "EU legislation; the AI RMF here is a voluntary U.S. framework and predates it."
+        },
+        {
+          "id": "una-05",
+          "query": "What are the five technical controls required for UK Cyber Essentials certification?",
+          "why_absent": "UK NCSC scheme. 'Cyber Essentials' does not occur in the corpus. Note that the acronym NCSC does appear three times, but it refers to the U.S. ODNI National Counterintelligence and Security Center, not the UK National Cyber Security Centre."
+        },
+        {
+          "id": "una-06",
+          "query": "What maturity levels are defined for the Australian Essential Eight mitigation strategies?",
+          "why_absent": "Australian Signals Directorate guidance; absent from this corpus."
+        },
+        {
+          "id": "una-07",
+          "query": "What is the maximum fine for a data-protection breach under Brazil's LGPD?",
+          "why_absent": "Brazilian data-protection law. Replaced the original HIPAA question: 'HIPAA' occurs 33 times across the corpus as a compliance context, notably in IR 8259 and SP 800-207."
+        },
+        {
+          "id": "una-08",
+          "query": "What reserve requirement ratio does the People's Bank of China apply to large commercial banks?",
+          "why_absent": "Chinese monetary policy. Replaced the original Basel III question: 'Basel III' and 'liquidity coverage ratio' both appear in the 2022 and 2023 Federal Reserve annual reports."
+        },
+        {
+          "id": "una-09",
+          "query": "Which price index does the Bank of Japan use to measure its 2 percent inflation target?",
+          "why_absent": "Japanese monetary policy. Replaced the original NBER question: 'National Bureau of Economic Research' appears in both Federal Reserve annual reports, defining the recession shading on their charts."
+        },
+        {
+          "id": "una-10",
+          "query": "What is the recommended cold-water steeping time for a first-flush Darjeeling?",
+          "why_absent": "Entirely outside the corpus domain; a control for obviously irrelevant queries."
+        },
+        {
+          "id": "una-11",
+          "query": "How does the Rust borrow checker's lifetime elision algorithm decide when a reference outlives its owner?",
+          "why_absent": "Programming-language internals; no document here discusses Rust."
+        },
+        {
+          "id": "una-12",
+          "query": "What is the maximum transmit power permitted for a Wi-Fi 6E access point in the 6 GHz band under FCC rules?",
+          "why_absent": "FCC radio regulation; outside the scope of every document here."
+        },
+        {
+          "id": "una-13",
+          "query": "How many players are on the field per team during a standard rugby union match?",
+          "why_absent": "Entirely outside the corpus domain; a second control query."
+        },
+        {
+          "id": "una-14",
+          "query": "What is the current statutory corporation tax rate for large companies in the Republic of Ireland?",
+          "why_absent": "Foreign tax law; absent from the U.S. federal documents in this corpus."
+        },
+        {
+          "id": "una-15",
+          "query": "Which antibiotic class is first-line treatment for uncomplicated community-acquired pneumonia in adults?",
+          "why_absent": "Clinical medicine; entirely outside the corpus domain."
+        }
+      ]
+    },
+    "multi_hop": {
+      "description": "Answering requires combining two documents. Measures whether top-k retrieval surfaces both, rather than only the more lexically similar one.",
+      "items": [
+        {
+          "id": "mh-01",
+          "query": "How should an organisation verify third-party components in a container image before deploying it?",
+          "gt_document_ids": [
+            "nist-sp-800-190",
+            "nist-sp-800-218"
+          ],
+          "hop_note": "Image-level guidance is in the container security guide; verifying acquired third-party components is an SSDF practice."
+        },
+        {
+          "id": "mh-02",
+          "query": "How does a zero trust policy engine's access decision relate to the authorisation step of the Risk Management Framework?",
+          "gt_document_ids": [
+            "nist-sp-800-207",
+            "nist-sp-800-37r2"
+          ],
+          "hop_note": "Policy engine is defined in the ZTA document; authorise is an RMF step."
+        },
+        {
+          "id": "mh-03",
+          "query": "After a ransomware event, what should an organisation do about media that cannot be verified clean?",
+          "gt_document_ids": [
+            "nist-sp-1800-25",
+            "nist-sp-800-88r1"
+          ],
+          "hop_note": "Recovery context from the data-integrity practice guide; sanitisation decisions from the media sanitization guidelines."
+        },
+        {
+          "id": "mh-04",
+          "query": "Which cloud service model leaves the customer most responsible for securing the operating system, and what does that imply for patching?",
+          "gt_document_ids": [
+            "nist-sp-800-145",
+            "nist-sp-800-146"
+          ],
+          "hop_note": "Service-model definitions in the cloud definition; security implications in the synopsis."
+        },
+        {
+          "id": "mh-05",
+          "query": "Is personally identifiable information also controlled unclassified information, and do the two require different handling?",
+          "gt_document_ids": [
+            "nist-sp-800-122",
+            "nist-sp-800-171r2"
+          ],
+          "hop_note": "PII definition and handling in one document, CUI requirements in the other."
+        },
+        {
+          "id": "mh-06",
+          "query": "Which log sources should be retained to support the detection and analysis phase of incident response?",
+          "gt_document_ids": [
+            "nist-sp-800-92",
+            "nist-sp-800-61r2"
+          ],
+          "hop_note": "Log source guidance in the log management guide; incident response phases in the handling guide."
+        },
+        {
+          "id": "mh-07",
+          "query": "How do the governance activities in the AI risk framework map onto the Identify function of the Cybersecurity Framework?",
+          "gt_document_ids": [
+            "nist-ai-100-1",
+            "nist-cswp-cyberframework-1-1"
+          ],
+          "hop_note": "Govern is an AI RMF function; Identify is a CSF core function."
+        },
+        {
+          "id": "mh-08",
+          "query": "What should a federal agency expect an IoT device manufacturer to have already done before the agency procures the device?",
+          "gt_document_ids": [
+            "nist-ir-8259",
+            "nist-sp-800-213"
+          ],
+          "hop_note": "Manufacturer-side activities in the IR; the federal acquirer's expectations in the SP."
+        },
+        {
+          "id": "mh-09",
+          "query": "How do secure software development practices feed into supply chain risk management for acquired software?",
+          "gt_document_ids": [
+            "nist-sp-800-218",
+            "nist-sp-800-161r1"
+          ],
+          "hop_note": "SSDF practices in one, C-SCRM controls in the other."
+        },
+        {
+          "id": "mh-10",
+          "query": "What inputs does a risk assessment provide to the categorise and select steps of the Risk Management Framework?",
+          "gt_document_ids": [
+            "nist-sp-800-30r1",
+            "nist-sp-800-37r2"
+          ],
+          "hop_note": "Assessment process in the risk assessment guide; the steps in the RMF document."
+        },
+        {
+          "id": "mh-11",
+          "query": "How should backup integrity be validated as part of contingency planning for a destructive-malware event?",
+          "gt_document_ids": [
+            "nist-sp-800-34r1",
+            "nist-sp-1800-25"
+          ],
+          "hop_note": "Contingency planning and backup strategy in one; integrity validation against ransomware in the other."
+        },
+        {
+          "id": "mh-12",
+          "query": "What should happen to storage media at end of life in a storage area network environment?",
+          "gt_document_ids": [
+            "nist-sp-800-209",
+            "nist-sp-800-88r1"
+          ],
+          "hop_note": "Storage infrastructure context in one; the sanitisation decision matrix in the other."
+        },
+        {
+          "id": "mh-13",
+          "query": "How does technical security testing produce evidence for a control assessment during authorisation?",
+          "gt_document_ids": [
+            "nist-sp-800-115",
+            "nist-sp-800-37r2"
+          ],
+          "hop_note": "Testing techniques in one; assessment and authorisation in the other."
+        },
+        {
+          "id": "mh-14",
+          "query": "Which authenticator assurance level is appropriate for resources accessed through a zero trust architecture?",
+          "gt_document_ids": [
+            "nist-sp-800-63-3",
+            "nist-sp-800-207"
+          ],
+          "hop_note": "AAL definitions in the identity guidelines; ZTA access requirements in the other."
+        },
+        {
+          "id": "mh-15",
+          "query": "How did the Federal Reserve's reported balance sheet position change between its 2022 and 2023 annual reports?",
+          "gt_document_ids": [
+            "frb-annual-report-2022",
+            "frb-annual-report-2023"
+          ],
+          "hop_note": "Requires reading the same figure from two different annual reports."
+        }
+      ]
+    },
+    "followup": {
+      "description": "Two-turn exchanges where turn 2 is elliptical and meaningless alone. Measures the value of query condensing: turn-2 retrieval with the raw text vs. with a standalone rewrite.",
+      "items": [
+        {
+          "id": "fu-01",
+          "turn_1": {
+            "query": "What is the purpose of a policy enforcement point in a zero trust architecture?",
+            "gt_document_id": "nist-sp-800-207"
+          },
+          "turn_2": {
+            "query": "How does it differ from the policy engine?",
+            "gt_document_id": "nist-sp-800-207",
+            "depends_on": "'it' refers to the policy enforcement point"
+          },
+          "reference_rewrite": "How does a policy enforcement point differ from a policy engine in a zero trust architecture?"
+        },
+        {
+          "id": "fu-02",
+          "turn_1": {
+            "query": "What are the three cloud service models defined by NIST?",
+            "gt_document_id": "nist-sp-800-145"
+          },
+          "turn_2": {
+            "query": "Which of them gives the customer the least control?",
+            "gt_document_id": "nist-sp-800-145",
+            "depends_on": "'them' refers to the three cloud service models"
+          },
+          "reference_rewrite": "Which NIST cloud service model gives the customer the least control?"
+        },
+        {
+          "id": "fu-03",
+          "turn_1": {
+            "query": "What are the phases of the incident response life cycle?",
+            "gt_document_id": "nist-sp-800-61r2"
+          },
+          "turn_2": {
+            "query": "What happens in the third one?",
+            "gt_document_id": "nist-sp-800-61r2",
+            "depends_on": "'the third one' refers to the third incident response phase"
+          },
+          "reference_rewrite": "What happens during the containment, eradication and recovery phase of incident response?"
+        },
+        {
+          "id": "fu-04",
+          "turn_1": {
+            "query": "What is the difference between clearing and purging media?",
+            "gt_document_id": "nist-sp-800-88r1"
+          },
+          "turn_2": {
+            "query": "When is destruction required instead?",
+            "gt_document_id": "nist-sp-800-88r1",
+            "depends_on": "'instead' contrasts with clearing and purging"
+          },
+          "reference_rewrite": "When is physical destruction of media required instead of clearing or purging?"
+        },
+        {
+          "id": "fu-05",
+          "turn_1": {
+            "query": "What are the core functions of the Cybersecurity Framework?",
+            "gt_document_id": "nist-cswp-cyberframework-1-1"
+          },
+          "turn_2": {
+            "query": "Which one covers incident response?",
+            "gt_document_id": "nist-cswp-cyberframework-1-1",
+            "depends_on": "'one' refers to a core function"
+          },
+          "reference_rewrite": "Which Cybersecurity Framework core function covers incident response?"
+        },
+        {
+          "id": "fu-06",
+          "turn_1": {
+            "query": "What are the four functions of the AI Risk Management Framework?",
+            "gt_document_id": "nist-ai-100-1"
+          },
+          "turn_2": {
+            "query": "What does the first one involve?",
+            "gt_document_id": "nist-ai-100-1",
+            "depends_on": "'the first one' refers to the first AI RMF function"
+          },
+          "reference_rewrite": "What does the Govern function of the AI Risk Management Framework involve?"
+        },
+        {
+          "id": "fu-07",
+          "turn_1": {
+            "query": "What is a container image?",
+            "gt_document_id": "nist-sp-800-190"
+          },
+          "turn_2": {
+            "query": "What are the main risks associated with them?",
+            "gt_document_id": "nist-sp-800-190",
+            "depends_on": "'them' refers to container images"
+          },
+          "reference_rewrite": "What are the main security risks associated with container images?"
+        },
+        {
+          "id": "fu-08",
+          "turn_1": {
+            "query": "What are the steps of the Risk Management Framework?",
+            "gt_document_id": "nist-sp-800-37r2"
+          },
+          "turn_2": {
+            "query": "Which step comes immediately after categorisation?",
+            "gt_document_id": "nist-sp-800-37r2",
+            "depends_on": "depends on the RMF step sequence given in turn 1"
+          },
+          "reference_rewrite": "Which Risk Management Framework step comes immediately after the categorise step?"
+        },
+        {
+          "id": "fu-09",
+          "turn_1": {
+            "query": "What is controlled unclassified information?",
+            "gt_document_id": "nist-sp-800-171r2"
+          },
+          "turn_2": {
+            "query": "How many security requirements protect it?",
+            "gt_document_id": "nist-sp-800-171r2",
+            "depends_on": "'it' refers to controlled unclassified information"
+          },
+          "reference_rewrite": "How many security requirements does NIST specify for protecting controlled unclassified information?"
+        },
+        {
+          "id": "fu-10",
+          "turn_1": {
+            "query": "What is the definition of personally identifiable information?",
+            "gt_document_id": "nist-sp-800-122"
+          },
+          "turn_2": {
+            "query": "What are the confidentiality impact levels for it?",
+            "gt_document_id": "nist-sp-800-122",
+            "depends_on": "'it' refers to personally identifiable information"
+          },
+          "reference_rewrite": "What are the confidentiality impact levels for personally identifiable information?"
+        },
+        {
+          "id": "fu-11",
+          "turn_1": {
+            "query": "What are the practices of the Secure Software Development Framework?",
+            "gt_document_id": "nist-sp-800-218"
+          },
+          "turn_2": {
+            "query": "Which group of them deals with the organisation rather than the code?",
+            "gt_document_id": "nist-sp-800-218",
+            "depends_on": "'them' refers to the SSDF practice groups"
+          },
+          "reference_rewrite": "Which Secure Software Development Framework practice group deals with preparing the organisation rather than the code?"
+        },
+        {
+          "id": "fu-12",
+          "turn_1": {
+            "query": "What is the purpose of a business impact analysis?",
+            "gt_document_id": "nist-sp-800-34r1"
+          },
+          "turn_2": {
+            "query": "What outputs does it produce?",
+            "gt_document_id": "nist-sp-800-34r1",
+            "depends_on": "'it' refers to the business impact analysis"
+          },
+          "reference_rewrite": "What outputs does a business impact analysis produce?"
+        },
+        {
+          "id": "fu-13",
+          "turn_1": {
+            "query": "What are the authenticator assurance levels?",
+            "gt_document_id": "nist-sp-800-63-3"
+          },
+          "turn_2": {
+            "query": "What is required at the highest one?",
+            "gt_document_id": "nist-sp-800-63-3",
+            "depends_on": "'the highest one' refers to the highest AAL"
+          },
+          "reference_rewrite": "What is required at authenticator assurance level 3?"
+        },
+        {
+          "id": "fu-14",
+          "turn_1": {
+            "query": "What is log management?",
+            "gt_document_id": "nist-sp-800-92"
+          },
+          "turn_2": {
+            "query": "What are the main challenges in doing it?",
+            "gt_document_id": "nist-sp-800-92",
+            "depends_on": "'it' refers to log management"
+          },
+          "reference_rewrite": "What are the main challenges in log management?"
+        },
+        {
+          "id": "fu-15",
+          "turn_1": {
+            "query": "What does the Survey of Consumer Finances measure?",
+            "gt_document_id": "frb-scf-2023"
+          },
+          "turn_2": {
+            "query": "How did median family net worth change in the most recent period it covers?",
+            "gt_document_id": "frb-scf-2023",
+            "depends_on": "'it' refers to the Survey of Consumer Finances"
+          },
+          "reference_rewrite": "How did median family net worth change between 2019 and 2022 according to the Survey of Consumer Finances?"
+        }
+      ]
+    }
+  }
+}

@@ -33,3 +33,9 @@ models/
 .vscode/
 .idea/
 *.iml
+
+# Evaluation corpus PDFs. The manifest (corpus/manifest.json) IS committed —
+# it carries the URL, SHA-256 and licence for each document, and
+# `python -m evaluation.download_corpus` reproduces this directory from it.
+# The files themselves are ~95MB of third-party publications.
+evaluation/corpus/files/

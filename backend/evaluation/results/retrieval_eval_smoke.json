@@ -1,0 +1,329 @@
+{
+  "environment": {
+    "captured_at": "2026-09-20T12:13:39.960782+00:00",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "python": "3.13.1",
+    "cpu_count_logical": 12,
+    "numpy": "2.2.6",
+    "cpu_count_physical": 8,
+    "total_ram_gb": 15.68,
+    "onnxruntime": "1.26.0",
+    "git_commit": "0f876bb",
+    "git_dirty": true
+  },
+  "run": {
+    "label": "smoke",
+    "user_id": "eval-cf71fa4ac73d7e91",
+    "eval_set": "eval_set_smoke.json",
+    "eval_set_size": 2,
+    "top_k": 10,
+    "similarity_threshold": 0.3,
+    "similarity_threshold_default": 0.3,
+    "metadata_filter": "none",
+    "embedding_model": "BAAI/bge-base-en-v1.5",
+    "vector_distance": "cosine (pgvector <=>, HNSW index)"
+  },
+  "metrics": {
+    "document": {
+      "queries": 2,
+      "recall_at_1": 1.0,
+      "precision_at_1": 1.0,
+      "ndcg_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "precision_at_3": 1.0,
+      "ndcg_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "precision_at_5": 0.9,
+      "ndcg_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "precision_at_10": 0.8,
+      "ndcg_at_10": 0.987,
+      "hit_rate_at_5": 1.0,
+      "hit_rate_at_5_note": "identical to recall_at_5: ground truth names one relevant page per query",
+      "mrr": 1.0
+    },
+    "page": {
+      "queries": 2,
+      "recall_at_1": 1.0,
+      "precision_at_1": 1.0,
+      "ndcg_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "precision_at_3": 1.0,
+      "ndcg_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "precision_at_5": 0.9,
+      "ndcg_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "precision_at_10": 0.8,
+      "ndcg_at_10": 0.987,
+      "hit_rate_at_5": 1.0,
+      "hit_rate_at_5_note": "identical to recall_at_5: ground truth names one relevant page per query",
+      "mrr": 1.0
+    },
+    "answer": {
+      "queries": 2,
+      "recall_at_1": 1.0,
+      "precision_at_1": 1.0,
+      "ndcg_at_1": 1.0,
+      "recall_at_3": 1.0,
+      "precision_at_3": 0.3333,
+      "ndcg_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "precision_at_5": 0.2,
+      "ndcg_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "precision_at_10": 0.1,
+      "ndcg_at_10": 1.0,
+      "hit_rate_at_5": 1.0,
+      "hit_rate_at_5_note": "identical to recall_at_5: ground truth names one relevant page per query",
+      "mrr": 1.0,
+      "scorable_queries": 2,
+      "note": "scored only on queries whose generated answer span is present verbatim in the ground-truth passage"
+    }
+  },
+  "queries_with_no_results": 0,
+  "retrieval_latency_ms": {
+    "p50": 22.07,
+    "p95": 488.567,
+    "p99": 488.567,
+    "min": 22.07,
+    "max": 488.567,
+    "mean": 255.318,
+    "n": 2
+  },
+  "per_query": [
+    {
+      "query_id": "q001",
+      "query": "What is the maximum file size supported for uploads in DocuQuery?",
+      "gt_filename": "README.md",
+      "gt_page": 1,
+      "answer_span_scorable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 3,
+          "similarity": 0.8436,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": true
+        },
+        {
+          "rank": 2,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 0,
+          "similarity": 0.8396,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 3,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 16,
+          "similarity": 0.8379,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 4,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 5,
+          "similarity": 0.8316,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 5,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 2,
+          "similarity": 0.8298,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 6,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 12,
+          "similarity": 0.816,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 7,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 13,
+          "similarity": 0.8143,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 8,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 4,
+          "similarity": 0.8138,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 9,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 7,
+          "similarity": 0.8077,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 10,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 18,
+          "similarity": 0.8073,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        }
+      ],
+      "first_relevant_rank": {
+        "document": 1,
+        "page": 1,
+        "answer": 1
+      },
+      "latency_ms": 488.57,
+      "n_retrieved": 10
+    },
+    {
+      "query_id": "q002",
+      "query": "Which package is required for FastAPI to parse multipart/form-data uploads but is never imported directly by the source code?",
+      "gt_filename": "DEPENDENCIES_VERIFIED.md",
+      "gt_page": 1,
+      "answer_span_scorable": true,
+      "retrieved": [
+        {
+          "rank": 1,
+          "filename": "DEPENDENCIES_VERIFIED.md",
+          "page": 1,
+          "chunk_index": 4,
+          "similarity": 0.8855,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": true
+        },
+        {
+          "rank": 2,
+          "filename": "DEPENDENCIES_VERIFIED.md",
+          "page": 1,
+          "chunk_index": 1,
+          "similarity": 0.8843,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 3,
+          "filename": "DEPENDENCIES_VERIFIED.md",
+          "page": 1,
+          "chunk_index": 6,
+          "similarity": 0.8786,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 4,
+          "filename": "DEPENDENCIES_VERIFIED.md",
+          "page": 1,
+          "chunk_index": 3,
+          "similarity": 0.8635,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 5,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 10,
+          "similarity": 0.8532,
+          "relevant_document": false,
+          "relevant_page": false,
+          "relevant_answer": false
+        },
+        {
+          "rank": 6,
+          "filename": "DEPENDENCIES_VERIFIED.md",
+          "page": 1,
+          "chunk_index": 2,
+          "similarity": 0.8456,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 7,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 12,
+          "similarity": 0.8401,
+          "relevant_document": false,
+          "relevant_page": false,
+          "relevant_answer": false
+        },
+        {
+          "rank": 8,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 16,
+          "similarity": 0.8399,
+          "relevant_document": false,
+          "relevant_page": false,
+          "relevant_answer": false
+        },
+        {
+          "rank": 9,
+          "filename": "DEPENDENCIES_VERIFIED.md",
+          "page": 1,
+          "chunk_index": 0,
+          "similarity": 0.8327,
+          "relevant_document": true,
+          "relevant_page": true,
+          "relevant_answer": false
+        },
+        {
+          "rank": 10,
+          "filename": "README.md",
+          "page": 1,
+          "chunk_index": 11,
+          "similarity": 0.8276,
+          "relevant_document": false,
+          "relevant_page": false,
+          "relevant_answer": false
+        }
+      ],
+      "first_relevant_rank": {
+        "document": 1,
+        "page": 1,
+        "answer": 1
+      },
+      "latency_ms": 22.07,
+      "n_retrieved": 10
+    }
+  ]
+}
